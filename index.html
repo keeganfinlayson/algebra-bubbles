@@ -181,7 +181,8 @@ function lift(t,delay=0){
 function position(t){if(t.el){
  const wobble=Math.sin(tick*3.5+t.id)*.035,squash=t.squash||0,stretch=Math.min(.10,(t.dragStretch||Math.hypot(t.vx||0,t.vy||0))/900),angle=t.bumpAngle||0;
  t.el.style.transform='translate('+(t.x-t.r)+'px,'+(t.y-t.r)+'px) scale('+(t.inflateScale??1)+')';
- if(t.skin){t.skin.style.transform='rotate('+angle+'rad) scale('+(1+wobble-squash+stretch)+','+(1-wobble+squash*.7-stretch*.5)+') rotate('+(-angle)+'rad)';t.skin.style.borderRadius=(49+Math.sin(tick*2+t.id)*4)+'% '+(51+Math.cos(tick*2.7+t.id)*4)+'% '+(48+Math.sin(tick*2.3+t.id)*4)+'% '+(50+Math.cos(tick*2.1+t.id)*4)+'%';}
+ const mergeProgress=Math.max(0,Math.min(1,(tick-(t.mergeSizeAt??-10))/.48));const mergeScale=1+(t.mergeSizeDirection||0)*.10*Math.sin(Math.PI*mergeProgress);
+ if(t.skin){t.skin.style.scale=String(mergeScale);t.skin.style.transform='rotate('+angle+'rad) scale('+(1+wobble-squash+stretch)+','+(1-wobble+squash*.7-stretch*.5)+') rotate('+(-angle)+'rad)';t.skin.style.borderRadius=(49+Math.sin(tick*2+t.id)*4)+'% '+(51+Math.cos(tick*2.7+t.id)*4)+'% '+(48+Math.sin(tick*2.3+t.id)*4)+'% '+(50+Math.cos(tick*2.1+t.id)*4)+'%';}
 }}
 
 function syncSelection(){
@@ -207,7 +208,7 @@ function commitBubbleMerge(a,b){
  recordCombination(a,b);
  const left=Math.min(terms.indexOf(a),terms.indexOf(b));const v=clean(a.v+b.v);
  const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:a.chosen&&b.chosen};
- a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);syncSelection();render();position(t);
+ a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.mergeSizeDirection=Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;syncSelection();render();position(t);
  const msg=label(a)+' and '+label(b)+' combine to '+label(t);$('live').textContent=msg;setStatus(v===0?'Opposite terms make zero and disappear.':'Like terms combined. Their coefficients add.');
  if(v===0){t.textEl.textContent='0';requestAnimationFrame(()=>t.el.classList.add('cancel'));}
 }
