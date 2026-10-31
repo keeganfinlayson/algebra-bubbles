@@ -79,6 +79,20 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 .bubble.selected{outline:none;outline-offset:0}.bubble.selected .bubble-skin{border-color:#20334c;box-shadow:inset 0 0 0 1.5px #20334c,inset 3px 5px 10px #ffffffaa,inset -4px -4px 9px var(--fill),0 4px 10px #243c5a0b}
 .bubble:focus-visible{outline:none}.bubble:focus-visible .bubble-skin{outline:2px dashed #20334c;outline-offset:3px}
 .bubble.history-highlight{outline:none!important;box-shadow:none!important}.bubble.history-highlight .bubble-skin{outline:2px dashed #304e70;outline-offset:3px}
+/* Accessible selection remains attached to the deforming film. */
+.bubble.selected{z-index:6}
+.bubble.selected .bubble-skin{border-width:2.7px;border-color:#20334c;background-color:color-mix(in srgb,var(--fill),transparent 78%)}
+.bubble.selected .bubble-label{animation:selection-tap .18s ease-out}
+@keyframes selection-tap{50%{transform:scale(1.06)}}
+@media(max-height:720px) and (min-width:651px){
+ #editor{padding:7px;gap:6px 10px}
+ #editor #form{align-items:center}
+ #editor #input{flex-basis:0;min-height:46px;font-size:24px;padding:8px 12px}
+ #editor #form button{padding:9px 12px}
+ #editor .keypad{grid-template-columns:repeat(10,26px);gap:3px}
+ #editor .keypad button{min-height:24px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.bubble.selected .bubble-label{animation:none}}
 </style>
 </head>
 <body><main>
@@ -105,7 +119,7 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 <script>
 'use strict';
 const $=id=>document.getElementById(id), field=$('field'), expression=$('expression');
-const palette={x:['#d5f0ff','#0072b2','#8bcff1','#004a75'],y:['#ffebc6','#d98200','#ffd07a','#714400'],'x²':['#ede0ff','#8151b5','#c8a6e9','#542b7c'],'y²':['#ffe0ef','#c44c89','#f4a7cf','#822755'],xy:['#d2f4f1','#008b82','#80d9cf','#005a55'],c:['#e5e9ef','#728095','#bcc8d6','#354358']};
+const palette={x:['#e1f4ef','#44AA99','#8bd2c3','#174b43'],y:['#f8e6ea','#CC6677','#e5a1ad','#632c3a'],'x²':['#e8e5f5','#332288','#8d80c7','#251960'],'y²':['#e7f4fc','#88CCEE','#b6e1f5','#254b64'],xy:['#f2e3ec','#882255','#bc7198','#581238'],c:['#fbf5df','#DDCC77','#eee0a6','#55491f']};
 let terms=[], uid=0, original='', previous=0, tick=0, selected=null, dragSession=null;
 let history=[],pending=null,activityMode='explore',mergeJobs=[],highlightedOrigins=[],lastStructure='';
 const clean=n=>Math.round(n*1e9)/1e9;
@@ -133,7 +147,7 @@ function label(t,first=false){const mag=t.type==='c'?number(t.v):(Math.abs(t.v)=
 function style(el,type){const p=$('neutral')?.checked?['#edf1f7','#8495ae','#c9d4e3','#243b5b']:palette[type];['--wash','--edge','--fill','--ink'].forEach((k,i)=>el.style.setProperty(k,p[i]));}
 function render(){
  expression.replaceChildren();
- terms.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='term '+t.state+(t.arrivalUntil>tick?' arrival':'');b.textContent=label(t,i===0);b.id='term-'+t.id;style(b,t.type);b.disabled=t.state!=='rest';b.setAttribute('aria-label',label(t)+'; drag to reorder, or use Alt and arrow keys');b.dataset.termId=t.id;expression.append(b);});
+ terms.filter(t=>!['air','inflating','fusing','cancel'].includes(t.state)).forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='term '+t.state+(t.arrivalUntil>tick?' arrival':'');b.textContent=label(t,i===0);b.id='term-'+t.id;style(b,t.type);b.disabled=t.state!=='rest';b.setAttribute('aria-label',label(t)+'; drag to reorder, or use Alt and arrow keys');b.dataset.termId=t.id;expression.append(b);});
  if(!terms.length){const z=document.createElement('span');z.className='term';z.textContent='0';style(z,'c');expression.append(z);}
  $('lift').disabled=!!pending||!!dragSession||!terms.some(t=>t.state==='rest');$('done').disabled=!!pending||!!dragSession||!terms.some(t=>t.state==='air'||t.state==='inflating');fitTray();updateCompletion();highlightCurrent();
 }
@@ -146,7 +160,8 @@ function fitTray(){
  for(const t of terms)if(t.el)t.targetR=bubbleRadius(t);
 }
 function bubbleRadius(t){
- const w=field.clientWidth,h=field.clientHeight,count=Math.max(1,terms.length);
+ const w=field.clientWidth,editor=$('editor');
+ const h=Math.max(1,field.clientHeight+(editor.hidden?0:editor.offsetHeight+9)),count=Math.max(1,terms.filter(n=>n.state!=='cancel').length);
  const space=Math.sqrt(Math.max(1,w*h)*.30/(Math.PI*count));
  return Math.max(20,Math.min(82,Math.max(30,space),w*.18,h*.25));
 }
@@ -160,7 +175,7 @@ function bubble(t){const b=document.createElement('button');b.type='button';b.cl
 
 function lift(t,delay=0){
  if(pending||t.state!=='rest')return;
- const d=destination(t);t.x=d.x;t.y=d.y;t.vx=(Math.random()-.5)*70;t.vy=-45;t.age=-delay;t.launch=0;t.inflateOrigin=null;t.inflateStart=.06;t.inflateScale=.06;t.state='inflating';t.chosen=false;bubble(t);t.el.classList.remove('pop');t.el.classList.add('inflating');t.el.style.opacity='0';render();position(t);setStatus('Terms are inflating into bubbles.');
+ const d=destination(t);t.x=d.x;t.y=d.y;t.vx=(Math.random()<.5?-1:1)*(95+Math.random()*65);t.vy=-110-Math.random()*55;t.age=-delay;t.launch=0;t.inflateOrigin=d;t.inflateStart=.06;t.inflateScale=.06;t.state='inflating';t.chosen=false;bubble(t);t.el.classList.remove('pop');t.el.classList.add('inflating');t.el.style.opacity='0';render();position(t);setStatus('Terms are inflating into bubbles.');
 }
 
 function position(t){if(t.el){
@@ -214,7 +229,7 @@ function frame(now){
    const targetX=Math.max(t.r+8,Math.min(w-t.r-8,source.x)),targetY=t.inflateOrigin?Math.max(t.r+10,Math.min(h-t.r-10,source.y-60)):Math.max(t.r+10,h-t.r-20);
    t.x=source.x+(targetX-source.x)*ease;t.y=source.y+(targetY-source.y)*ease;
    const tile=$('term-'+t.id);if(tile)tile.style.setProperty('--lift-opacity',String(1-.78*grow));position(t);
-   if(u===1){t.state='air';t.age=0;t.inflateScale=1;t.el.classList.remove('inflating');render();}
+   if(u===1){t.state='air';t.age=0;t.launch=.65;t.inflateScale=1;t.el.classList.remove('inflating');render();}
    continue;
   }
   if(t.state==='cancel'){t.age+=dt;if(t.age>1.2){t.el.remove();terms=terms.filter(n=>n!==t);render();}continue;}
@@ -351,7 +366,7 @@ function bubbleFromBoard(t,x,y){
 function endBoardDrag(e,cancel=false){
  const d=dragSession;if(!d||d.t.state!=='rest'||d.id!==e.pointerId)return;dragSession=null;
  if(d.ghost)d.ghost.remove();d.b.classList.remove('drag-source');clearBoardTargets();
- if(d.moved&&!cancel){if(inBubbleField(e.clientX,e.clientY)){bubbleFromBoard(d.t,e.clientX,e.clientY);return;}const target=boardDropTarget(d.t,e.clientX,e.clientY);if(target&&combineOnBoard(d.t,target))return;reorderTerm(d.t,insertionSlot(d.t,e.clientX,e.clientY));}else render();
+ if(d.moved&&!cancel){if(inBubbleField(e.clientX,e.clientY)){if(bubbleFromBoard(d.t,e.clientX,e.clientY)){const t=d.t;t.state='air';t.inflateScale=1;t.age=0;t.launch=0;t.vx=t.vy=0;t.el.classList.remove('inflating');selectBubble(t,true);gatherHover(t,t.x,t.y,t.x,t.y);position(t);render();}return;}const target=boardDropTarget(d.t,e.clientX,e.clientY);if(target&&combineOnBoard(d.t,target))return;reorderTerm(d.t,insertionSlot(d.t,e.clientX,e.clientY));}else render();
 }
 expression.addEventListener('pointerup',e=>endBoardDrag(e));expression.addEventListener('pointercancel',e=>endBoardDrag(e,true));expression.addEventListener('lostpointercapture',e=>endBoardDrag(e,true));
 expression.addEventListener('keydown',e=>{
@@ -362,7 +377,7 @@ expression.addEventListener('keydown',e=>{
 
 function load(source){let parsed;try{parsed=parse(source);}catch(e){$('error').textContent=e.message;return;}$('error').textContent='';if(dragSession?.ghost)dragSession.ghost.remove();dragSession=null;$('tray').classList.remove('drop-ready');field.querySelectorAll('.bubble').forEach(b=>b.remove());cancelActivity();history=[];highlightedOrigins=[];terms=parsed;selected=null;original=source;renderHistory();$('reset').disabled=false;field.querySelector('.hint').textContent='Click Bubble below to release the terms.';render();setStatus('Expression ready. Click Bubble to release the terms.');$('live').textContent='Expression loaded.';}
 function showEnteredExpression(){
- try{load($('input').value);}catch(e){$('error').textContent='Unable to show the expression: '+e.message;}
+ try{parse($('input').value);$('editor').hidden=true;$('make-own').setAttribute('aria-expanded','false');load($('input').value);}catch(e){$('error').textContent='Unable to show the expression: '+e.message;}
 }
 $('show').addEventListener('click',showEnteredExpression);
 $('form').addEventListener('submit',e=>{e.preventDefault();showEnteredExpression();});
@@ -370,6 +385,7 @@ $('input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault()
 $('lift').onclick=()=>{terms.filter(t=>t.state==='rest').forEach((t,i)=>lift(t,i*.12));field.querySelector('.hint').textContent='Click like terms to combine them in any order. Click Unbubble when you’re ready.';};
 $('done').onclick=()=>{
  if(pending)return;cancelFusions();selected=null;
+ const airborne=terms.filter(t=>['air','inflating'].includes(t.state)).sort((a,b)=>a.x-b.x);terms=[...terms.filter(t=>!airborne.includes(t)),...airborne];
  for(const t of terms)if(t.state==='air'||t.state==='inflating')returnTerm(t);
  render();field.querySelector('.hint').textContent='Click Bubble to explore another order.';setStatus('Returning the terms to the tray.');
 };
