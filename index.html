@@ -178,11 +178,22 @@ function lift(t,delay=0){
  const d=destination(t);t.x=d.x;t.y=d.y;t.vx=(Math.random()-.5)*70;t.vy=-45-Math.random()*20;t.age=-delay;t.launch=0;t.inflateOrigin=d;t.inflateStart=.06;t.inflateScale=.06;t.state='inflating';t.chosen=false;bubble(t);t.el.classList.remove('pop');t.el.classList.add('inflating');t.el.style.opacity='0';render();position(t);setStatus('Terms are inflating into bubbles.');
 }
 
+// Damped surface springs; translation and deformation never move each other.
+function surfaceStep(t,dt){
+ for(const [key,target] of [['filmX',t.contactX||0],['filmY',t.contactY||0],['filmShear',t.contactShear||0],['filmSize',t.sizeKick||0]]){
+  const vkey=key+'Velocity',value=t[key]||0;
+  t[vkey]=((t[vkey]||0)+(target-value)*90*dt)*Math.exp(-15*dt);
+  t[key]=Math.max(-.12,Math.min(.12,value+t[vkey]*dt));
+ }
+ t.contactX=t.contactY=t.contactShear=0;t.sizeKick=(t.sizeKick||0)*Math.exp(-dt*8);
+}
 function position(t){if(t.el){
- const wobble=Math.sin(tick*3.5+t.id)*.035,squash=t.squash||0,stretch=Math.min(.10,(t.dragStretch||Math.hypot(t.vx||0,t.vy||0))/900),angle=t.bumpAngle||0;
  t.el.style.transform='translate('+(t.x-t.r)+'px,'+(t.y-t.r)+'px) scale('+(t.inflateScale??1)+')';
- const mergeProgress=Math.max(0,Math.min(1,(tick-(t.mergeSizeAt??-10))/.48));const mergeScale=1+(t.mergeSizeDirection||0)*.10*Math.sin(Math.PI*mergeProgress);
- if(t.skin){t.skin.style.scale=String(mergeScale);t.skin.style.transform='rotate('+angle+'rad) scale('+(1+wobble-squash+stretch)+','+(1-wobble+squash*.7-stretch*.5)+') rotate('+(-angle)+'rad)';t.skin.style.borderRadius=(49+Math.sin(tick*2+t.id)*4)+'% '+(51+Math.cos(tick*2.7+t.id)*4)+'% '+(48+Math.sin(tick*2.3+t.id)*4)+'% '+(50+Math.cos(tick*2.1+t.id)*4)+'%';}
+ if(t.skin){
+  const size=1+(t.filmSize||0),xx=size+(t.filmX||0),yy=size+(t.filmY||0),xy=t.filmShear||0;
+  t.skin.style.scale='';t.skin.style.transform='matrix('+xx+','+xy+','+xy+','+yy+',0,0)';
+  t.skin.style.borderRadius='50%';
+ }
 }}
 
 function syncSelection(){
@@ -208,16 +219,24 @@ function commitBubbleMerge(a,b){
  recordCombination(a,b);
  const left=Math.min(terms.indexOf(a),terms.indexOf(b));const v=clean(a.v+b.v);
  const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:a.chosen&&b.chosen};
- a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick+.7;t.mergeSizeDirection=Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;syncSelection();render();position(t);
+ a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick+.7;t.mergeSizeDirection=Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;t.sizeKick=t.mergeSizeDirection*.09;syncSelection();render();position(t);
  const msg=label(a)+' and '+label(b)+' combine to '+label(t);$('live').textContent=msg;setStatus(v===0?'Opposite terms make zero and disappear.':'Like terms combined. Their coefficients add.');
  if(v===0){t.textEl.textContent='0';requestAnimationFrame(()=>t.el.classList.add('cancel'));}
 }
+let physicsAccumulator=0;
 function frame(now){
- const dt=Math.min((now-previous)/1000||.016,.035);previous=now;tick+=dt;
+ const elapsed=previous?Math.min(.08,Math.max(0,(now-previous)/1000)):1/60;previous=now;
+ physicsAccumulator+=elapsed;
+ while(physicsAccumulator>=1/120){physicsStep(1/120);physicsAccumulator-=1/120;}
+ requestAnimationFrame(frame);
+}
+function physicsStep(dt){
+ tick+=dt;
  const w=field.clientWidth,h=field.clientHeight;
- if(pending){if(pending.finishAt&&tick>=pending.finishAt)finishAnswer();else{requestAnimationFrame(frame);return;}}
+ if(pending){if(pending.finishAt&&tick>=pending.finishAt)finishAnswer();else{return;}}
  advanceMerges(dt);
  for(const t of [...terms]){
+  surfaceStep(t,dt);
   t.squash=(t.squash||0)*Math.exp(-dt*5);t.dragStretch=(t.dragStretch||0)*Math.exp(-dt*7);
   if(t.state==='fusing')continue;
   if(t.el&&t.targetR){t.r+=(t.targetR-t.r)*(1-Math.exp(-dt*4));sizeBubble(t);}
@@ -243,10 +262,10 @@ function frame(now){
   t.age+=dt;
   if(t.launch>0){t.launch-=dt;t.vy+=dt*70;}
   else{
-   let ax=Math.sin(tick*.8+t.id)*10,ay=Math.cos(tick*.9+t.id)*9;
+   let ax=0,ay=-1.5;
    const peers=t.chosen?terms.filter(n=>n!==t&&n.state==='air'&&!n.dragging&&dragSession?.t!==n&&n.chosen&&n.type===t.type):[];
-   if(peers.length){const near=peers.reduce((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)<Math.hypot(b.x-t.x,b.y-t.y)?a:b);const dx=near.x-t.x,dy=near.y-t.y,d=Math.hypot(dx,dy)||1;ax+=dx/d*34;ay+=dy/d*34;}
-   else{ax+=(w/2-t.x)*.025;ay+=(h*.52-t.y)*.035;}
+   if(peers.length){const near=peers.reduce((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)<Math.hypot(b.x-t.x,b.y-t.y)?a:b);const dx=near.x-t.x,dy=near.y-t.y,d=Math.hypot(dx,dy)||1;const force=Math.min(30,d*.45);ax+=dx/d*force;ay+=dy/d*force;}
+   else{ax+=(w/2-t.x)*.006;ay+=(h*.52-t.y)*.009;}
    t.vx=(t.vx+ax*dt)*Math.exp(-dt*1.5);t.vy=(t.vy+ay*dt)*Math.exp(-dt*1.5);
   }
   const speed=Math.hypot(t.vx,t.vy);const maxSpeed=t.settleUntil>tick?24:80;if(speed>maxSpeed){t.vx*=maxSpeed/speed;t.vy*=maxSpeed/speed;}
@@ -260,12 +279,18 @@ function frame(now){
   const a=airborne[i],b=airborne[j];if(pending||a.state!=='air'||b.state!=='air'||!terms.includes(a)||!terms.includes(b))continue;
   const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||.01;
   if(d<a.r+b.r){if(a.chosen&&b.chosen&&a.type===b.type){requestCombination(a,b,'bubble');}else{
-   // Let soft bubbles overlap slightly; compress along their contact axis.
-   const total=a.r+b.r,overlap=total-d,push=Math.min(22*dt,Math.max(0,total*.88-d)*(1-Math.exp(-dt*2))),nx=dx/d,ny=dy/d;
-   a.x-=nx*push;a.y-=ny*push;b.x+=nx*push;b.y+=ny*push;
+   // Spring contact forces alter velocity, never teleport the centers.
+   const total=a.r+b.r,overlap=total-d;
+   const nx=d>.01?dx/d:1,ny=d>.01?dy/d:0;
    const closing=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
-   if(closing>0){const impulse=closing*.5;a.vx-=nx*impulse;a.vy-=ny*impulse;b.vx+=nx*impulse;b.vy+=ny*impulse;}
-   const squish=Math.min(.13,overlap/total*.4);a.squash=Math.max(a.squash||0,squish);b.squash=Math.max(b.squash||0,squish);a.bumpAngle=b.bumpAngle=Math.atan2(dy,dx);position(a);position(b);
+   const force=Math.max(0,Math.min(110,Math.max(0,total*.90-d)*3+closing*2));
+   a.vx-=nx*force*dt;a.vy-=ny*force*dt;b.vx+=nx*force*dt;b.vy+=ny*force*dt;
+   const compression=Math.min(.08,overlap/total*.30);
+   for(const t of [a,b]){
+    t.contactX=(t.contactX||0)+compression*(ny*ny-nx*nx);
+    t.contactY=(t.contactY||0)+compression*(nx*nx-ny*ny);
+    t.contactShear=(t.contactShear||0)-2*compression*nx*ny;
+   }
   }}
 
  }
@@ -273,7 +298,6 @@ function frame(now){
   const repeated=terms.some((t,i)=>terms.slice(i+1).some(n=>n.type===t.type));
   if(!repeated)setStatus('Combined: '+(terms.map((t,i)=>label(t,i===0)).join(' ')||'0')+'. Restart to try a different order.');
  }
- requestAnimationFrame(frame);
 }
 
 function burst(t){
@@ -472,16 +496,21 @@ function finishAnswer(){const p=pending;if(!p)return;pending=null;$('answer-pane
 function startFusion(a,b){
  const bridge=document.createElement('div');bridge.className='merge-neck';style(bridge,a.type);field.prepend(bridge);
  const j={a,b,bridge,age:0,ax:a.x,ay:a.y,bx:b.x,by:b.y,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};
- for(const t of [a,b]){t.fuseOriginalX=t.x;t.fuseOriginalY=t.y;t.state='fusing';t.vx=t.vy=0;t.el.classList.add('fusing');}
+ for(const t of [a,b]){t.fuseOriginalX=t.x;t.fuseOriginalY=t.y;t.state='fusing';t.vx*=.15;t.vy*=.15;t.el.classList.add('fusing');}
  mergeJobs.push(j);render();
 }
 function advanceMerges(dt){
  for(const j of [...mergeJobs]){if(!terms.includes(j.a)||!terms.includes(j.b)){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);continue;}
   j.age+=dt;const u=Math.min(1,j.age/.52),e=u*u*(3-2*u),a=j.a,b=j.b;
-  a.x=j.ax+(j.cx-j.ax)*e;a.y=j.ay+(j.cy-j.ay)*e;b.x=j.bx+(j.cx-j.bx)*e;b.y=j.by+(j.cy-j.by)*e;
+  for(const t of [a,b]){
+   t.vx=((t.vx||0)+(j.cx-t.x)*85*dt)*Math.exp(-18*dt);
+   t.vy=((t.vy||0)+(j.cy-t.y)*85*dt)*Math.exp(-18*dt);
+   t.x+=t.vx*dt;t.y+=t.vy*dt;
+   t.contactX=-.035;t.contactY=.035;surfaceStep(t,dt);
+  }
   a.squash=b.squash=Math.sin(u*Math.PI)*.12;a.bumpAngle=b.bumpAngle=Math.atan2(b.y-a.y,b.x-a.x);position(a);position(b);
   const width=Math.max(12,Math.hypot(b.x-a.x,b.y-a.y)),height=Math.max(4,Math.min(a.r,b.r)*.7*Math.sin(u*Math.PI));j.bridge.style.width=width+'px';j.bridge.style.height=height+'px';j.bridge.style.left=(a.x+b.x)/2-width/2+'px';j.bridge.style.top=(a.y+b.y)/2-height/2+'px';j.bridge.style.transform='rotate('+Math.atan2(b.y-a.y,b.x-a.x)+'rad)';
-  if(u===1){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);commitBubbleMerge(a,b);}
+  if(j.age>.55&&Math.hypot(a.x-b.x,a.y-b.y)<2||j.age>1.6){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);commitBubbleMerge(a,b);}
  }
 }
 function updateCompletion(){
