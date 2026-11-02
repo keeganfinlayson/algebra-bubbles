@@ -93,6 +93,7 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
  #editor .keypad button{min-height:24px;font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.bubble.selected .bubble-label{animation:none}}
+.bubble-skin{background:none!important;border:0!important;box-shadow:none!important}.bubble-skin:before,.bubble-skin:after{display:none}.bubble.selected .film-outline{stroke:#20334c;stroke-width:.045}.bubble.fusing .bubble-skin{visibility:hidden}
 </style>
 </head>
 <body><main>
@@ -179,20 +180,26 @@ function lift(t,delay=0){
 }
 
 // Damped surface springs; translation and deformation never move each other.
+const FILM_N=64;
+function initFilm(t){if(!t.film){t.film=Array(FILM_N).fill(0);t.filmV=Array(FILM_N).fill(0);t.contacts=[];}}
 function surfaceStep(t,dt){
- for(const [key,target] of [['filmX',t.contactX||0],['filmY',t.contactY||0],['filmShear',t.contactShear||0],['filmSize',t.sizeKick||0]]){
-  const vkey=key+'Velocity',value=t[key]||0;
-  t[vkey]=((t[vkey]||0)+(target-value)*90*dt)*Math.exp(-15*dt);
-  t[key]=Math.max(-.12,Math.min(.12,value+t[vkey]*dt));
- }
- t.contactX=t.contactY=t.contactShear=0;t.sizeKick=(t.sizeKick||0)*Math.exp(-dt*8);
+ initFilm(t);const old=t.film.slice();
+ for(let i=0;i<FILM_N;i++){let target=0;const th=i/FILM_N*Math.PI*2;
+ for(const c of t.contacts){const d=Math.atan2(Math.sin(th-c.angle),Math.cos(th-c.angle));target-=c.depth*Math.exp(-d*d/.10);}
+ const lap=old[(i+1)%FILM_N]+old[(i+FILM_N-1)%FILM_N]-2*old[i];
+ t.filmV[i]+=(38*(target-old[i])+400*lap-3.8*t.filmV[i])*dt;
+ t.film[i]=Math.max(-.20,Math.min(.20,old[i]+t.filmV[i]*dt));
+ }t.contacts=[];
 }
+function filmContact(t,angle,depth,impact){initFilm(t);t.contacts.push({angle,depth});if(impact>0)for(let i=0;i<FILM_N;i++){const d=Math.atan2(Math.sin(i/FILM_N*Math.PI*2-angle),Math.cos(i/FILM_N*Math.PI*2-angle));t.filmV[i]-=impact*Math.exp(-d*d/.04);}}
+function filmPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+','+p[1].toFixed(2)).join(' ')+'Z';}
 function position(t){if(t.el){
  t.el.style.transform='translate('+(t.x-t.r)+'px,'+(t.y-t.r)+'px) scale('+(t.inflateScale??1)+')';
- if(t.skin){
-  const size=1+(t.filmSize||0),xx=size+(t.filmX||0),yy=size+(t.filmY||0),xy=t.filmShear||0;
-  t.skin.style.scale='';t.skin.style.transform='matrix('+xx+','+xy+','+xy+','+yy+',0,0)';
-  t.skin.style.borderRadius='50%';
+ if(t.skin){initFilm(t);if(!t.filmPath){
+ t.skin.innerHTML='<svg viewBox="-1.25 -1.25 2.5 2.5" style="position:absolute;inset:-12.5%;width:125%;height:125%;overflow:visible"><path class="film-outline" fill="var(--wash)" fill-opacity=".65" stroke="var(--edge)" stroke-width=".025"/><path d="M -.64,-.57 Q -.48,-.80 -.22,-.82" fill="none" stroke="white" stroke-opacity=".75" stroke-width=".035" stroke-linecap="round"/></svg>';
+ t.filmPath=t.skin.querySelector('.film-outline');}
+ t.skin.style.transform='none';t.skin.style.scale='';
+ t.filmPath.setAttribute('d',filmPath(t.film.map((q,i)=>{const th=i/FILM_N*Math.PI*2;return[(1+q)*Math.cos(th),(1+q)*Math.sin(th)];})));
  }
 }}
 
@@ -260,12 +267,12 @@ function physicsStep(dt){
   if(t.state!=='air')continue;
   if(t.hold>0){t.hold=Math.max(0,t.hold-dt);position(t);if(t.hold===0){setStatus('Selected like terms are moving together. You can click more.');}continue;}
   t.age+=dt;
-  if(t.launch>0){t.launch-=dt;t.vy+=dt*70;}
+  if(t.launch>0){t.launch-=dt;t.vx*=Math.exp(-dt*.4);}
   else{
-   let ax=0,ay=-1.5;
+   let ax=0,ay=0;
    const peers=t.chosen?terms.filter(n=>n!==t&&n.state==='air'&&!n.dragging&&dragSession?.t!==n&&n.chosen&&n.type===t.type):[];
    if(peers.length){const near=peers.reduce((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)<Math.hypot(b.x-t.x,b.y-t.y)?a:b);const dx=near.x-t.x,dy=near.y-t.y,d=Math.hypot(dx,dy)||1;const force=Math.min(30,d*.45);ax+=dx/d*force;ay+=dy/d*force;}
-   else{ax+=(w/2-t.x)*.006;ay+=(h*.52-t.y)*.009;}
+   else{}
    t.vx=(t.vx+ax*dt)*Math.exp(-dt*1.5);t.vy=(t.vy+ay*dt)*Math.exp(-dt*1.5);
   }
   const speed=Math.hypot(t.vx,t.vy);const maxSpeed=t.settleUntil>tick?24:80;if(speed>maxSpeed){t.vx*=maxSpeed/speed;t.vy*=maxSpeed/speed;}
@@ -285,12 +292,9 @@ function physicsStep(dt){
    const closing=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
    const force=Math.max(0,Math.min(110,Math.max(0,total*.90-d)*3+closing*2));
    a.vx-=nx*force*dt;a.vy-=ny*force*dt;b.vx+=nx*force*dt;b.vy+=ny*force*dt;
-   const compression=Math.min(.08,overlap/total*.30);
-   for(const t of [a,b]){
-    t.contactX=(t.contactX||0)+compression*(ny*ny-nx*nx);
-    t.contactY=(t.contactY||0)+compression*(nx*nx-ny*ny);
-    t.contactShear=(t.contactShear||0)-2*compression*nx*ny;
-   }
+   const compression=Math.min(.17,overlap/total*.55),angle=Math.atan2(dy,dx);
+   const impact=closing>4?Math.min(.5,closing/150):0;
+   filmContact(a,angle,compression,impact);filmContact(b,angle+Math.PI,compression,impact);
   }}
 
  }
@@ -347,7 +351,7 @@ function attachBubbleDrag(t,b){
  const end=(e,cancel=false)=>{
   const d=dragSession;if(!d||d.b!==b||d.id!==e.pointerId)return;
   dragSession=null;t.dragging=false;$('tray').classList.remove('drop-ready');b.classList.remove('dragging');
-  if(d.moved){t.suppressClick=!cancel;t.launch=0;if(!cancel){const f=field.getBoundingClientRect();gatherHover(t,t.x,t.y,e.clientX-f.left,e.clientY-f.top);}
+  if(d.moved){t.suppressClick=!cancel;t.launch=0;if(!cancel){const f=field.getBoundingClientRect();gatherHover(t,t.x,t.y,e.clientX-f.left,e.clientY-f.top);if(!inBoard(e.clientX,e.clientY)){const target=terms.find(n=>n!==t&&n.state==='air'&&n.type===t.type&&Math.hypot(n.x-t.x,n.y-t.y)<n.r+t.r);if(target){t.chosen=target.chosen=true;t.hold=target.hold=0;requestCombination(t,target,'bubble');render();return;}}}
    if(!cancel&&inBoard(e.clientX,e.clientY)){reorderTerm(t,insertionSlot(t,e.clientX,e.clientY));returnTerm(t);setStatus('Term returned to the board.');}
    else{t.x=Math.max(t.r,Math.min(field.clientWidth-t.r,t.x));t.y=Math.max(t.r,Math.min(field.clientHeight-t.r,t.y));position(t);render();}
   }
@@ -465,7 +469,7 @@ function renderHistory(){
  history.forEach((step,i)=>{const li=document.createElement('li'),button=document.createElement('button');button.type='button';button.className='step';button.textContent=step.text;button.setAttribute('aria-label','Step '+(i+1)+': '+step.text);button.onclick=()=>{highlightedOrigins=step.sources;highlightCurrent();setStatus(step.result==='0'?'These terms canceled to zero.':'Highlighted the current term containing this step.');};li.append(button);list.append(li);});
 }
 function highlightCurrent(){for(const t of terms){const match=highlightedOrigins.some(id=>(t.origins||[t.id]).includes(id));$('term-'+t.id)?.classList.toggle('history-highlight',match);t.el?.classList.toggle('history-highlight',match);}}
-function cancelFusions(){for(const j of mergeJobs){j.bridge.remove();for(const t of [j.a,j.b])if(terms.includes(t)){t.state='air';t.squash=0;t.el?.classList.remove('fusing');}}mergeJobs=[];}
+function cancelFusions(){for(const j of mergeJobs){j.bridge.remove();for(const t of [j.a,j.b])if(terms.includes(t)){t.state='air';t.squash=0;t.el?.classList.remove('fusing');if(t.textEl)t.textEl.style.opacity='1';}}mergeJobs=[];}
 function cancelActivity(){cancelFusions();pending=null;$('answer-panel').hidden=true;$('stage').classList.remove('answer-active');}
 function undoCombination(){
  if(pending){cancelActivity();for(const t of terms){t.chosen=false;t.hold=0;}syncSelection();render();renderHistory();setStatus('Combination canceled.');return;}
@@ -494,23 +498,23 @@ function checkAnswer(value){
 }
 function finishAnswer(){const p=pending;if(!p)return;pending=null;$('answer-panel').hidden=true;$('stage').classList.remove('answer-active');if(p.source==='board')commitBoardMerge(p.a,p.b);else startFusion(p.a,p.b);render();renderHistory();}
 function startFusion(a,b){
- const bridge=document.createElement('div');bridge.className='merge-neck';style(bridge,a.type);field.prepend(bridge);
- const j={a,b,bridge,age:0,ax:a.x,ay:a.y,bx:b.x,by:b.y,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};
- for(const t of [a,b]){t.fuseOriginalX=t.x;t.fuseOriginalY=t.y;t.state='fusing';t.vx*=.15;t.vy*=.15;t.el.classList.add('fusing');}
- mergeJobs.push(j);render();
+ const bridge=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ bridge.classList.add('merge-neck');bridge.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;opacity:1;background:none;box-shadow:none';
+ style(bridge,a.type);bridge.innerHTML='<path fill="var(--wash)" fill-opacity=".65" stroke="var(--edge)" stroke-width="2"/>';field.prepend(bridge);
+ const j={a,b,bridge,path:bridge.firstChild,age:0,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,sep:Math.hypot(b.x-a.x,b.y-a.y)/2,angle:Math.atan2(b.y-a.y,b.x-a.x),r:(a.r+b.r)/2};
+ for(const t of [a,b]){t.fuseOriginalX=t.x;t.fuseOriginalY=t.y;t.state='fusing';t.vx=t.vy=0;t.el.classList.add('fusing');}mergeJobs.push(j);render();
 }
 function advanceMerges(dt){
- for(const j of [...mergeJobs]){if(!terms.includes(j.a)||!terms.includes(j.b)){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);continue;}
-  j.age+=dt;const u=Math.min(1,j.age/.52),e=u*u*(3-2*u),a=j.a,b=j.b;
-  for(const t of [a,b]){
-   t.vx=((t.vx||0)+(j.cx-t.x)*85*dt)*Math.exp(-18*dt);
-   t.vy=((t.vy||0)+(j.cy-t.y)*85*dt)*Math.exp(-18*dt);
-   t.x+=t.vx*dt;t.y+=t.vy*dt;
-   t.contactX=-.035;t.contactY=.035;surfaceStep(t,dt);
-  }
-  a.squash=b.squash=Math.sin(u*Math.PI)*.12;a.bumpAngle=b.bumpAngle=Math.atan2(b.y-a.y,b.x-a.x);position(a);position(b);
-  const width=Math.max(12,Math.hypot(b.x-a.x,b.y-a.y)),height=Math.max(4,Math.min(a.r,b.r)*.7*Math.sin(u*Math.PI));j.bridge.style.width=width+'px';j.bridge.style.height=height+'px';j.bridge.style.left=(a.x+b.x)/2-width/2+'px';j.bridge.style.top=(a.y+b.y)/2-height/2+'px';j.bridge.style.transform='rotate('+Math.atan2(b.y-a.y,b.x-a.x)+'rad)';
-  if(j.age>.55&&Math.hypot(a.x-b.x,a.y-b.y)<2||j.age>1.6){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);commitBubbleMerge(a,b);}
+ for(const j of [...mergeJobs]){
+ if(!terms.includes(j.a)||!terms.includes(j.b)){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);continue;}
+ j.age+=dt;const u=Math.min(1,j.age/2.1),opening=Math.min(1,j.age/.30),ease=opening*opening*(3-2*opening),r=j.r,sep=j.sep*(1-ease),age=Math.max(0,j.age-.1),pts=[];
+ for(let i=0;i<128;i++){const th=i/128*Math.PI*2,cs=Math.cos(th),sn=Math.sin(th);
+ const outer=sep*Math.abs(cs)+Math.sqrt(Math.max(0,r*r-sep*sep*sn*sn));
+ const wave=r*(1-Math.exp(-age*14))*Math.exp(-age*2.8)*(1-u**4)*(.15*Math.sin(age*11)*Math.cos(2*th)+.035*Math.sin(age*15)*Math.sin(3*th));
+ const radius=Math.max(outer,r*Math.sqrt(ease)*.65)+wave,x=radius*cs,y=radius*sn;pts.push([j.cx+x*Math.cos(j.angle)-y*Math.sin(j.angle),j.cy+x*Math.sin(j.angle)+y*Math.cos(j.angle)]);}
+ j.path.setAttribute('d',filmPath(pts));
+ for(const [t,sign] of [[j.a,-1],[j.b,1]]){t.x=j.cx+sign*sep*Math.cos(j.angle);t.y=j.cy+sign*sep*Math.sin(j.angle);t.textEl.style.opacity=String(1-ease);position(t);}
+ if(u===1){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);commitBubbleMerge(j.a,j.b);}
  }
 }
 function updateCompletion(){
