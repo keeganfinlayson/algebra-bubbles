@@ -94,6 +94,7 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 }
 @media(prefers-reduced-motion:reduce){.bubble.selected .bubble-label{animation:none}}
 .bubble-skin{background:none!important;border:0!important;box-shadow:none!important}.bubble-skin:before,.bubble-skin:after{display:none}.bubble.selected .film-outline{stroke:#20334c;stroke-width:.045}.bubble.fusing .bubble-skin{visibility:hidden}
+#timed-panel{display:flex;flex-direction:column;gap:8px}#timed-panel p{font-size:12px}#timed-clock{font-size:32px;font-variant-numeric:tabular-nums;font-weight:600}#timed-result{white-space:pre-line}.timed-mode .practice-controls,.timed-mode .neutral-toggle{display:none}.timed-running #stage{user-select:none}.timed-ended #field,.timed-ended #expression{pointer-events:none}.timed-mode #completion{display:none!important}.segmented button{padding:8px 5px;font-size:12px}
 </style>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b0deb9e26d5b4ab8afbd2ccc45627468"}'></script><!-- End Cloudflare Web Analytics -->
 </head>
@@ -109,8 +110,8 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 </div>
 <div id="divider" role="separator" aria-label="Resize steps sidebar" aria-orientation="vertical" tabindex="0"></div>
 <aside id="sidebar">
-<div class="segmented" role="group" aria-label="Activity mode"><button id="explore-mode" aria-pressed="true">Explore</button><button id="solve-mode" aria-pressed="false">Solve</button></div>
-<div class="practice-controls"><label for="practice">Practice</label><select id="practice"><option value="mixed">Variety</option><option value="pairs">Pairs</option><option value="groups">Three or more</option><option value="cancel">Cancellation</option><option value="signed">Mixed signs</option><option value="powers">x, x², and xy</option></select><button id="example">New expression</button></div>
+<div class="segmented" role="group" aria-label="Activity mode"><button id="explore-mode" aria-pressed="true">Explore</button><button id="solve-mode" aria-pressed="false">Solve</button><button id="timed-mode" aria-pressed="false">Challenge</button></div>
+<section id="timed-panel" hidden><h2>Beat Your Time</h2><label for="timed-level">Difficulty</label><select id="timed-level"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select><p id="timed-description"></p><p id="timed-targets"></p><div id="timed-clock">0.0s</div><p id="timed-best"></p><button id="timed-start">Start challenge</button><button id="timed-stop" class="secondary" hidden>End attempt</button><p id="timed-result" role="status"></p></section><div class="practice-controls"><label for="practice">Practice</label><select id="practice"><option value="mixed">Variety</option><option value="pairs">Pairs</option><option value="groups">Three or more</option><option value="cancel">Cancellation</option><option value="signed">Mixed signs</option><option value="powers">x, x², and xy</option></select><button id="example">New expression</button></div>
 <label class="neutral-toggle"><input id="neutral" type="checkbox"> Neutral colors</label>
 <section id="answer-panel" hidden aria-labelledby="answer-title"><h2 id="answer-title">Combine these terms</h2><div id="answer-pair"></div><form id="answer-form"><label for="answer-input">Resulting term</label><div class="answer-entry"><input id="answer-input" autocomplete="off" spellcheck="false" placeholder="e.g. −2x"><button id="answer-check">Check</button></div></form><p id="answer-feedback" role="status"></p></section>
 <div class="steps-heading"><h2>Your steps <span id="step-count">0</span></h2><button id="undo" class="secondary" disabled>Undo</button></div><ol id="steps" aria-label="Combination history"></ol>
@@ -224,6 +225,7 @@ function selectBubble(t,force=false){
 }
 
 function commitBubbleMerge(a,b){
+ if(timed.active&&performance.now()-timed.started>=timedSpec().limit*1000){finishTimed(false);return;}
  recordCombination(a,b);
  const left=Math.min(terms.indexOf(a),terms.indexOf(b));const v=clean(a.v+b.v);
  const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:a.chosen&&b.chosen};
@@ -233,6 +235,7 @@ function commitBubbleMerge(a,b){
 }
 let physicsAccumulator=0;
 function frame(now){
+ timedFrame();
  const elapsed=previous?Math.min(.08,Math.max(0,(now-previous)/1000)):1/60;previous=now;
  physicsAccumulator+=elapsed;
  while(physicsAccumulator>=1/120){physicsStep(1/120);physicsAccumulator-=1/120;}
@@ -381,6 +384,7 @@ function combineOnBoard(t,target){
  return requestCombination(t,target,'board');
 }
 function commitBoardMerge(t,target){
+ if(timed.active&&performance.now()-timed.started>=timedSpec().limit*1000){finishTimed(false);return false;}
  recordCombination(t,target);
  const sum=clean(t.v+target.v),msg=label(t)+' and '+label(target)+' combine to '+(sum===0?'0':label({v:sum,type:t.type},true));
  const d=destination(target);burst({x:d.x,y:d.y,type:target.type});
@@ -519,6 +523,7 @@ function advanceMerges(dt){
  }
 }
 function updateCompletion(){
+ if(timed.active)timedCheck();
  const live=terms.filter(t=>t.state!=='cancel'),repeated=live.some((t,i)=>live.slice(i+1).some(n=>n.type===t.type));
  const finished=!!original&&!repeated&&!pending&&!mergeJobs.length&&!terms.some(t=>['cancel','inflating','returning'].includes(t.state));
  $('completion').hidden=!finished;$('final-expression').textContent=finished?expressionText(live):'';$('board-caption').textContent=finished?'Simplified expression':'Your expression';$('tray').classList.toggle('complete',finished);
@@ -535,7 +540,7 @@ function initializeWorkspace(){
  $('make-own').onclick=()=>{const editor=$('editor');editor.hidden=!editor.hidden;$('make-own').setAttribute('aria-expanded',String(!editor.hidden));fitTray();if(!editor.hidden)$('input').focus();};
  $('undo').onclick=undoCombination;
  $('answer-form').onsubmit=e=>{e.preventDefault();checkAnswer($('answer-input').value);};
- const setMode=mode=>{cancelActivity();for(const t of terms){t.chosen=false;t.hold=0;}selected=null;syncSelection();activityMode=mode;$('explore-mode').setAttribute('aria-pressed',String(mode==='explore'));$('solve-mode').setAttribute('aria-pressed',String(mode==='solve'));$('mode-label').textContent=mode==='explore'?'Explore':'Solve';render();renderHistory();};
+ const setMode=mode=>{leaveTimedMode();cancelActivity();for(const t of terms){t.chosen=false;t.hold=0;}selected=null;syncSelection();activityMode=mode;$('explore-mode').setAttribute('aria-pressed',String(mode==='explore'));$('solve-mode').setAttribute('aria-pressed',String(mode==='solve'));$('mode-label').textContent=mode==='explore'?'Explore':'Solve';render();renderHistory();};
  $('explore-mode').onclick=()=>setMode('explore');$('solve-mode').onclick=()=>setMode('solve');
  $('neutral').onchange=()=>{for(const t of terms){const el=$('term-'+t.id);if(el)style(el,t.type);if(t.el)style(t.el,t.type);}for(const j of mergeJobs)style(j.bridge,j.a.type);};
  $('another').onclick=()=>$('example').onclick();$('another-order').onclick=()=>load(original);
@@ -546,5 +551,89 @@ function initializeWorkspace(){
  $('input').value=randomExample();load($('input').value);renderHistory();
 }
 
-initializeWorkspace();new ResizeObserver(fitTray).observe($('stage'));window.addEventListener('resize',fitTray);fitTray();requestAnimationFrame(frame);
+
+const TIMED_LEVELS={
+ easy:{types:['x','y','c'],each:2,max:6,three:20,two:35,limit:50,description:'6 terms · 3 pairs · positive coefficients'},
+ medium:{types:['x','y','c'],each:3,max:9,three:35,two:55,limit:80,description:'9 terms · groups of three · mixed signs'},
+ hard:{types:['x','y','x²','xy'],each:3,max:12,three:45,two:70,limit:100,description:'12 terms · 4 term types · mixed signs'}
+};
+const timed={active:false,mode:false,started:0,lastProblem:''};
+function timedSpec(){return TIMED_LEVELS[$('timed-level').value];}
+function timedProblem(level){
+ const spec=TIMED_LEVELS[level],parts=[];
+ for(const type of spec.types){
+  const values=Array.from({length:spec.each},()=>1+Math.floor(Math.random()*spec.max));
+  if(level!=='easy')values[values.length-1]=-(values.slice(0,-1).reduce((a,b)=>a+b,0)+1+Math.floor(Math.random()*4));
+  values.forEach(v=>parts.push({type,v}));
+ }
+ let result=shuffled(parts).map((t,i)=>label(t,i===0)).join(' ');
+ if(result===timed.lastProblem){const t=parts[parts.length-1];t.v+=t.v<0?-1:1;result=shuffled(parts).map((t,i)=>label(t,i===0)).join(' ');}
+ timed.lastProblem=result;return result;
+}
+function timedRating(seconds,spec){return seconds<=spec.three?3:seconds<=spec.two?2:seconds<=spec.limit?1:0;}
+function timedBest(){try{return Number(localStorage.getItem('algebra-bubbles-time-'+$('timed-level').value))||null;}catch{return null;}}
+function timedInfo(){
+ const spec=timedSpec();$('timed-description').textContent=spec.description;
+ $('timed-targets').textContent='★★★ ≤ '+spec.three+'s · ★★ ≤ '+spec.two+'s · ★ ≤ '+spec.limit+'s';
+ const best=timedBest();$('timed-best').textContent=best?'Personal best: '+best.toFixed(1)+'s':'Complete an attempt to set your best time.';
+}
+function timedLock(){
+ const locked=timed.mode;$('stage').inert=timed.mode&&!timed.active;
+ for(const id of ['make-own','example','reset','undo','another','another-order'])$(id).disabled=locked;
+ $('timed-level').disabled=timed.active;$('timed-start').hidden=timed.active;$('timed-stop').hidden=!timed.active;
+ if(timed.mode&&!timed.active){$('lift').disabled=true;$('done').disabled=true;}
+}
+function leaveTimedMode(){
+ if(!timed.mode)return;timed.active=false;timed.mode=false;$('stage').inert=false;cancelActivity();
+ document.querySelector('main').classList.remove('timed-mode','timed-running','timed-ended');
+ $('timed-panel').hidden=true;$('timed-mode').setAttribute('aria-pressed','false');
+ for(const id of ['make-own','example','reset','undo','another','another-order'])$(id).disabled=false;
+}
+function enterTimedMode(){
+ cancelActivity();timed.mode=true;timed.active=false;activityMode='explore';
+ document.querySelector('main').classList.add('timed-mode','timed-ended');$('editor').hidden=true;
+ $('make-own').setAttribute('aria-expanded','false');$('timed-panel').hidden=false;
+ for(const id of ['explore-mode','solve-mode'])$(id).setAttribute('aria-pressed','false');
+ $('timed-mode').setAttribute('aria-pressed','true');$('mode-label').textContent='Beat Your Time';
+ $('timed-result').textContent='Simplify the whole expression before time runs out. The clock includes all animations.';
+ timedInfo();timedLock();fitTray();
+}
+function startTimed(){
+ cancelActivity();timed.active=false;const source=timedProblem($('timed-level').value);
+ $('input').value=source;load(source);
+ $('neutral').checked=false;$('neutral').onchange();document.querySelector('main').classList.remove('timed-ended');document.querySelector('main').classList.add('timed-running');
+ $('timed-result').textContent='';$('timed-start').textContent='New problem';
+ timed.started=performance.now();timed.active=true;
+ $('lift').onclick();timedLock();
+}
+function finishTimed(success){
+ if(!timed.active)return;const seconds=(performance.now()-timed.started)/1000,spec=timedSpec();
+ success=success&&seconds<=spec.limit;timed.active=false;
+ cancelActivity();for(const t of terms){t.chosen=false;t.hold=0;}syncSelection();
+ document.querySelector('main').classList.remove('timed-running');document.querySelector('main').classList.add('timed-ended');
+ $('timed-clock').textContent=Math.min(seconds,spec.limit).toFixed(1)+'s';
+ const stars=success?timedRating(seconds,spec):0;
+ $('timed-result').textContent=success?'★'.repeat(stars)+'☆'.repeat(3-stars)+' — '+seconds.toFixed(1)+'s\nExpression simplified!':'Time is up. Try a fresh problem.';
+ if(success){const best=timedBest();if(!best||seconds<best)try{localStorage.setItem('algebra-bubbles-time-'+$('timed-level').value,String(seconds));}catch{}}
+ timedInfo();timedLock();$('timed-start').focus();
+}
+function timedCheck(){
+ if(!timed.active)return;
+ const live=terms.filter(t=>t.state!=='cancel'),busy=pending||mergeJobs.length||terms.some(t=>['cancel','inflating','returning'].includes(t.state));
+ if(!busy&&!live.some((t,i)=>live.slice(i+1).some(n=>n.type===t.type)))finishTimed(true);
+}
+function timedFrame(){
+ if(timed.active){
+ const seconds=(performance.now()-timed.started)/1000;
+ $('timed-clock').textContent=seconds.toFixed(1)+'s / '+timedSpec().limit+'s';
+ if(seconds>=timedSpec().limit)finishTimed(false);else timedCheck();
+ }
+ if(timed.mode)timedLock();
+}
+function initializeTimed(){
+ $('timed-mode').onclick=enterTimedMode;$('timed-level').onchange=timedInfo;$('timed-start').onclick=startTimed;
+ $('timed-stop').onclick=()=>{finishTimed(false);$('timed-result').textContent='Attempt ended. Start a fresh problem when ready.';};
+}
+
+initializeWorkspace();initializeTimed();new ResizeObserver(fitTray).observe($('stage'));window.addEventListener('resize',fitTray);fitTray();requestAnimationFrame(frame);
 </script></body></html>
