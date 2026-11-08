@@ -147,7 +147,7 @@ function parse(source){
 
 function number(v){return String(clean(Math.abs(v)));}
 function label(t,first=false){const mag=t.type==='c'?number(t.v):(Math.abs(t.v)===1?'':number(t.v))+t.type;return(t.v<0?'−':first?'':'+')+mag;}
-function style(el,type){const p=$('neutral')?.checked?['#edf1f7','#8495ae','#c9d4e3','#243b5b']:palette[type];['--wash','--edge','--fill','--ink'].forEach((k,i)=>el.style.setProperty(k,p[i]));}
+function style(el,type){const p=(document.querySelector('main').classList.contains('timed-mode')||$('neutral')?.checked)?['#edf1f7','#8495ae','#c9d4e3','#243b5b']:palette[type];['--wash','--edge','--fill','--ink'].forEach((k,i)=>el.style.setProperty(k,p[i]));}
 function render(){
  expression.replaceChildren();
  terms.filter(t=>!['air','inflating','fusing','cancel'].includes(t.state)).forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='term '+t.state+(t.arrivalUntil>tick?' arrival':'');b.textContent=label(t,i===0);b.id='term-'+t.id;style(b,t.type);b.disabled=t.state!=='rest';b.setAttribute('aria-label',label(t)+'; drag to reorder, or use Alt and arrow keys');b.dataset.termId=t.id;expression.append(b);});
@@ -589,13 +589,13 @@ function timedLock(){
 }
 function leaveTimedMode(){
  if(!timed.mode)return;timed.active=false;timed.mode=false;$('stage').inert=false;cancelActivity();
- document.querySelector('main').classList.remove('timed-mode','timed-running','timed-ended');
+ document.querySelector('main').classList.remove('timed-mode','timed-running','timed-ended');$('neutral').onchange();
  $('timed-panel').hidden=true;$('timed-mode').setAttribute('aria-pressed','false');
  for(const id of ['make-own','example','reset','undo','another','another-order'])$(id).disabled=false;
 }
 function enterTimedMode(){
  cancelActivity();timed.mode=true;timed.active=false;activityMode='explore';
- document.querySelector('main').classList.add('timed-mode','timed-ended');$('editor').hidden=true;
+ document.querySelector('main').classList.add('timed-mode','timed-ended');$('neutral').onchange();$('editor').hidden=true;
  $('make-own').setAttribute('aria-expanded','false');$('timed-panel').hidden=false;
  for(const id of ['explore-mode','solve-mode'])$(id).setAttribute('aria-pressed','false');
  $('timed-mode').setAttribute('aria-pressed','true');$('mode-label').textContent='Beat Your Time';
@@ -605,7 +605,7 @@ function enterTimedMode(){
 function startTimed(){
  cancelActivity();timed.active=false;const source=timedProblem($('timed-level').value);
  $('input').value=source;load(source);
- $('neutral').checked=false;$('neutral').onchange();document.querySelector('main').classList.remove('timed-ended');document.querySelector('main').classList.add('timed-running');
+ $('neutral').onchange();document.querySelector('main').classList.remove('timed-ended');document.querySelector('main').classList.add('timed-running');
  $('timed-result').textContent='';$('timed-start').textContent='New problem';
  timed.started=performance.now();timed.active=true;
  timedLock();
