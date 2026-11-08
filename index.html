@@ -509,6 +509,8 @@ function startFusion(a,b){
  bridge.classList.add('merge-neck');bridge.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;opacity:1;background:none;box-shadow:none';
  style(bridge,a.type);bridge.innerHTML='<path fill="var(--wash)" fill-opacity=".65" stroke="var(--edge)" stroke-width="2"/>';field.prepend(bridge);
  const j={a,b,bridge,path:bridge.firstChild,age:0,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,sep:Math.hypot(b.x-a.x,b.y-a.y)/2,angle:Math.atan2(b.y-a.y,b.x-a.x),r:(a.r+b.r)/2};
+ const result=clean(a.v+b.v);j.resultLabel=document.createElementNS('http://www.w3.org/2000/svg','text');j.resultLabel.textContent=result===0?'0':label({v:result,type:a.type});
+ j.resultLabel.setAttribute('x',j.cx);j.resultLabel.setAttribute('y',j.cy);j.resultLabel.setAttribute('text-anchor','middle');j.resultLabel.setAttribute('dominant-baseline','central');j.resultLabel.setAttribute('fill','var(--ink)');j.resultLabel.style.fontWeight='650';j.resultLabel.style.fontSize=Math.max(12,Math.min(34,160/j.resultLabel.textContent.length,j.r*.55))+'px';j.resultLabel.style.opacity='0';bridge.append(j.resultLabel);
  for(const t of [a,b]){t.fuseOriginalX=t.x;t.fuseOriginalY=t.y;t.state='fusing';t.vx=t.vy=0;t.el.classList.add('fusing');}mergeJobs.push(j);render();
 }
 function advanceMerges(dt){
@@ -520,6 +522,7 @@ function advanceMerges(dt){
  const wave=r*(1-Math.exp(-age*14))*Math.exp(-age*2.8)*(1-u**4)*(.15*Math.sin(age*11)*Math.cos(2*th)+.035*Math.sin(age*15)*Math.sin(3*th));
  const radius=Math.max(outer,r*Math.sqrt(ease)*.65)+wave,x=radius*cs,y=radius*sn;pts.push([j.cx+x*Math.cos(j.angle)-y*Math.sin(j.angle),j.cy+x*Math.sin(j.angle)+y*Math.cos(j.angle)]);}
  j.path.setAttribute('d',filmPath(pts));
+ j.resultLabel.style.opacity=String(ease);
  for(const [t,sign] of [[j.a,-1],[j.b,1]]){t.x=j.cx+sign*sep*Math.cos(j.angle);t.y=j.cy+sign*sep*Math.sin(j.angle);t.textEl.style.opacity=String(1-ease);position(t);}
  if(u===1){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);const returning=unbubbleRequested;commitBubbleMerge(j.a,j.b);unbubbleRequested=unbubbleRequested||returning;}
  }
