@@ -94,7 +94,7 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 }
 @media(prefers-reduced-motion:reduce){.bubble.selected .bubble-label{animation:none}}
 .bubble-skin{background:none!important;border:0!important;box-shadow:none!important}.bubble-skin:before,.bubble-skin:after{display:none}.bubble.selected .film-outline{stroke:#20334c;stroke-width:.045}.bubble.fusing .bubble-skin{visibility:hidden}
-#timed-panel{display:flex;flex-direction:column;gap:8px}#timed-panel p{font-size:12px}#timed-clock{font-size:32px;font-variant-numeric:tabular-nums;font-weight:600}#timed-result{white-space:pre-line}.timed-mode .practice-controls,.timed-mode .neutral-toggle{display:none}.timed-running #stage{user-select:none}.timed-ended #field,.timed-ended #expression{pointer-events:none}.timed-mode #completion{display:none!important}.segmented button{padding:8px 5px;font-size:12px}
+#timed-panel{display:flex;flex-direction:column;gap:8px}#timed-panel p{font-size:12px}#timed-clock{font-size:32px;font-variant-numeric:tabular-nums;font-weight:600}#timed-result{white-space:pre-line}.timed-mode .practice-controls,.timed-mode .neutral-toggle{display:none}.timed-running #stage{user-select:none}.timed-mode #completion{display:none!important}.segmented button{padding:8px 5px;font-size:12px}
 </style>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b0deb9e26d5b4ab8afbd2ccc45627468"}'></script><!-- End Cloudflare Web Analytics -->
 </head>
@@ -124,7 +124,7 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 const $=id=>document.getElementById(id), field=$('field'), expression=$('expression');
 const palette={x:['#e1f4ef','#44AA99','#8bd2c3','#174b43'],y:['#f8e6ea','#CC6677','#e5a1ad','#632c3a'],'x²':['#e8e5f5','#332288','#8d80c7','#251960'],'y²':['#e7f4fc','#88CCEE','#b6e1f5','#254b64'],xy:['#f2e3ec','#882255','#bc7198','#581238'],c:['#fbf5df','#DDCC77','#eee0a6','#55491f']};
 let terms=[], uid=0, original='', previous=0, tick=0, selected=null, dragSession=null;
-let history=[],pending=null,activityMode='explore',mergeJobs=[],highlightedOrigins=[],lastStructure='';
+let history=[],pending=null,activityMode='explore',mergeJobs=[],unbubbleRequested=false,highlightedOrigins=[],lastStructure='';
 const clean=n=>Math.round(n*1e9)/1e9;
 function parse(source){
  let s=source.replace(/[−–—‐‑]/g,'-').replace(/[×·]/g,'*').replace(/\s+/g,'').toLowerCase().replace(/([xy])\^2/g,'$1²');
@@ -152,7 +152,7 @@ function render(){
  expression.replaceChildren();
  terms.filter(t=>!['air','inflating','fusing','cancel'].includes(t.state)).forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='term '+t.state+(t.arrivalUntil>tick?' arrival':'');b.textContent=label(t,i===0);b.id='term-'+t.id;style(b,t.type);b.disabled=t.state!=='rest';b.setAttribute('aria-label',label(t)+'; drag to reorder, or use Alt and arrow keys');b.dataset.termId=t.id;expression.append(b);});
  if(!terms.length){const z=document.createElement('span');z.className='term';z.textContent='0';style(z,'c');expression.append(z);}
- $('lift').disabled=!!pending||!!dragSession||!terms.some(t=>t.state==='rest');$('done').disabled=!!pending||!!dragSession||!terms.some(t=>t.state==='air'||t.state==='inflating');fitTray();updateCompletion();highlightCurrent();
+ $('lift').disabled=!!pending||!!dragSession||!terms.some(t=>t.state==='rest');$('done').disabled=!!pending||!!dragSession||!terms.some(t=>['air','inflating','fusing'].includes(t.state));fitTray();updateCompletion();highlightCurrent();
 }
 function fitTray(){
  const tray=$('tray'),stage=$('stage');if(!tray||!stage)return;
@@ -400,7 +400,7 @@ function bubbleFromBoard(t,x,y){
 function endBoardDrag(e,cancel=false){
  const d=dragSession;if(!d||d.t.state!=='rest'||d.id!==e.pointerId)return;dragSession=null;
  if(d.ghost)d.ghost.remove();d.b.classList.remove('drag-source');clearBoardTargets();
- if(d.moved&&!cancel){if(inBubbleField(e.clientX,e.clientY)){if(bubbleFromBoard(d.t,e.clientX,e.clientY)){const t=d.t;t.state='air';t.inflateScale=1;t.age=0;t.launch=0;t.vx=t.vy=0;t.el.classList.remove('inflating');selectBubble(t,true);gatherHover(t,t.x,t.y,t.x,t.y);position(t);render();}return;}const target=boardDropTarget(d.t,e.clientX,e.clientY);if(target&&combineOnBoard(d.t,target))return;reorderTerm(d.t,insertionSlot(d.t,e.clientX,e.clientY));}else render();
+ if(d.moved&&!cancel){if(inBubbleField(e.clientX,e.clientY)){if(bubbleFromBoard(d.t,e.clientX,e.clientY)){const t=d.t;t.state='air';t.inflateScale=1;t.age=0;t.launch=0;t.vx=t.vy=0;t.el.classList.remove('inflating');selectBubble(t,true);gatherHover(t,t.x,t.y,t.x,t.y);const target=terms.find(n=>n!==t&&n.state==='air'&&n.type===t.type&&Math.hypot(n.x-t.x,n.y-t.y)<n.r+t.r);if(target){t.chosen=target.chosen=true;t.hold=target.hold=0;requestCombination(t,target,'bubble');}position(t);render();}return;}const target=boardDropTarget(d.t,e.clientX,e.clientY);if(target&&combineOnBoard(d.t,target))return;reorderTerm(d.t,insertionSlot(d.t,e.clientX,e.clientY));}else render();
 }
 expression.addEventListener('pointerup',e=>endBoardDrag(e));expression.addEventListener('pointercancel',e=>endBoardDrag(e,true));expression.addEventListener('lostpointercapture',e=>endBoardDrag(e,true));
 expression.addEventListener('keydown',e=>{
@@ -418,7 +418,9 @@ $('form').addEventListener('submit',e=>{e.preventDefault();showEnteredExpression
 $('input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();showEnteredExpression();}});
 $('lift').onclick=()=>{terms.filter(t=>t.state==='rest').forEach((t,i)=>lift(t,i*.12));field.querySelector('.hint').textContent='Click like terms to combine them in any order. Click Unbubble when you’re ready.';};
 $('done').onclick=()=>{
- if(pending)return;cancelFusions();selected=null;
+ if(pending)return;
+ if(mergeJobs.length){unbubbleRequested=true;setStatus('Finishing the combinations before returning them to the board.');return;}
+ unbubbleRequested=false;selected=null;
  const airborne=terms.filter(t=>['air','inflating'].includes(t.state)).sort((a,b)=>a.x-b.x);terms=[...terms.filter(t=>!airborne.includes(t)),...airborne];
  for(const t of terms)if(t.state==='air'||t.state==='inflating')returnTerm(t);
  render();field.querySelector('.hint').textContent='Click Bubble to explore another order.';setStatus('Returning the terms to the tray.');
@@ -474,7 +476,7 @@ function renderHistory(){
  history.forEach((step,i)=>{const li=document.createElement('li'),button=document.createElement('button');button.type='button';button.className='step';button.textContent=step.text;button.setAttribute('aria-label','Step '+(i+1)+': '+step.text);button.onclick=()=>{highlightedOrigins=step.sources;highlightCurrent();setStatus(step.result==='0'?'These terms canceled to zero.':'Highlighted the current term containing this step.');};li.append(button);list.append(li);});
 }
 function highlightCurrent(){for(const t of terms){const match=highlightedOrigins.some(id=>(t.origins||[t.id]).includes(id));$('term-'+t.id)?.classList.toggle('history-highlight',match);t.el?.classList.toggle('history-highlight',match);}}
-function cancelFusions(){for(const j of mergeJobs){j.bridge.remove();for(const t of [j.a,j.b])if(terms.includes(t)){t.state='air';t.squash=0;t.el?.classList.remove('fusing');if(t.textEl)t.textEl.style.opacity='1';}}mergeJobs=[];}
+function cancelFusions(){unbubbleRequested=false;for(const j of mergeJobs){j.bridge.remove();for(const t of [j.a,j.b])if(terms.includes(t)){t.state='air';t.squash=0;t.el?.classList.remove('fusing');if(t.textEl)t.textEl.style.opacity='1';}}mergeJobs=[];}
 function cancelActivity(){cancelFusions();pending=null;$('answer-panel').hidden=true;$('stage').classList.remove('answer-active');}
 function undoCombination(){
  if(pending){cancelActivity();for(const t of terms){t.chosen=false;t.hold=0;}syncSelection();render();renderHistory();setStatus('Combination canceled.');return;}
@@ -519,8 +521,9 @@ function advanceMerges(dt){
  const radius=Math.max(outer,r*Math.sqrt(ease)*.65)+wave,x=radius*cs,y=radius*sn;pts.push([j.cx+x*Math.cos(j.angle)-y*Math.sin(j.angle),j.cy+x*Math.sin(j.angle)+y*Math.cos(j.angle)]);}
  j.path.setAttribute('d',filmPath(pts));
  for(const [t,sign] of [[j.a,-1],[j.b,1]]){t.x=j.cx+sign*sep*Math.cos(j.angle);t.y=j.cy+sign*sep*Math.sin(j.angle);t.textEl.style.opacity=String(1-ease);position(t);}
- if(u===1){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);commitBubbleMerge(j.a,j.b);}
+ if(u===1){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);const returning=unbubbleRequested;commitBubbleMerge(j.a,j.b);unbubbleRequested=unbubbleRequested||returning;}
  }
+ if(unbubbleRequested&&!mergeJobs.length)$('done').onclick();
 }
 function updateCompletion(){
  if(timed.active)timedCheck();
@@ -578,10 +581,11 @@ function timedInfo(){
  const best=timedBest();$('timed-best').textContent=best?'Personal best: '+best.toFixed(1)+'s':'Complete an attempt to set your best time.';
 }
 function timedLock(){
- const locked=timed.mode;$('stage').inert=timed.mode&&!timed.active;
- for(const id of ['make-own','example','reset','undo','another','another-order'])$(id).disabled=locked;
+ const locked=timed.mode;$('stage').inert=false;
+ for(const id of ['make-own','example','reset','another','another-order'])$(id).disabled=locked;
+ $('undo').disabled=!history.length&&!pending;
  $('timed-level').disabled=timed.active;$('timed-start').hidden=timed.active;$('timed-stop').hidden=!timed.active;
- if(timed.mode&&!timed.active){$('lift').disabled=true;$('done').disabled=true;}
+
 }
 function leaveTimedMode(){
  if(!timed.mode)return;timed.active=false;timed.mode=false;$('stage').inert=false;cancelActivity();
@@ -604,7 +608,7 @@ function startTimed(){
  $('neutral').checked=false;$('neutral').onchange();document.querySelector('main').classList.remove('timed-ended');document.querySelector('main').classList.add('timed-running');
  $('timed-result').textContent='';$('timed-start').textContent='New problem';
  timed.started=performance.now();timed.active=true;
- $('lift').onclick();timedLock();
+ timedLock();
 }
 function finishTimed(success){
  if(!timed.active)return;const seconds=(performance.now()-timed.started)/1000,spec=timedSpec();
