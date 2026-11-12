@@ -176,9 +176,9 @@ function setStatus(text){$('status').textContent=text;}
 function destination(t){const a=$('term-'+t.id).getBoundingClientRect(),f=field.getBoundingClientRect();return{x:a.left+a.width/2-f.left,y:a.top+a.height/2-f.top};}
 function bubble(t){const b=document.createElement('button');b.type='button';b.className='bubble pop';b.setAttribute('aria-label','Select '+label(t));b.setAttribute('aria-pressed','false');b.onclick=e=>{if(e&&e.detail===0)t.suppressClick=false;if(t.suppressClick){t.suppressClick=false;return;}selectBubble(t);};style(b,t.type);const skin=document.createElement('span');skin.className='bubble-skin';const text=document.createElement('span');text.className='bubble-label';text.textContent=label(t);b.append(skin,text);t.skin=skin;t.textEl=text;t.r=t.targetR=bubbleRadius(t);t.el=b;sizeBubble(t);field.append(b);attachBubbleDrag(t,b);}
 
-function lift(t,delay=0){
+function lift(t,delay=0,launchTarget=null){
  if(pending||t.state!=='rest')return;
- const d=destination(t);t.x=d.x;t.y=d.y;t.vx=(Math.random()-.5)*70;t.vy=-45-Math.random()*20;t.age=-delay;t.launch=0;t.inflateOrigin=d;t.inflateStart=.06;t.inflateScale=.06;t.state='inflating';t.chosen=false;bubble(t);t.el.classList.remove('pop');t.el.classList.add('inflating');t.el.style.opacity='0';render();position(t);setStatus('Terms are inflating into bubbles.');
+ const d=destination(t);t.x=d.x;t.y=d.y;t.vx=(Math.random()-.5)*70;t.vy=-45-Math.random()*20;t.age=-delay;t.launch=0;t.inflateOrigin=d;t.launchTarget=launchTarget;t.inflateStart=.06;t.inflateScale=.06;t.state='inflating';t.chosen=false;bubble(t);t.el.classList.remove('pop');t.el.classList.add('inflating');t.el.style.opacity='0';render();position(t);setStatus('Terms are inflating into bubbles.');
 }
 
 // Damped surface springs; translation and deformation never move each other.
@@ -232,6 +232,7 @@ function commitBubbleMerge(a,b){
  a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick+.7;t.mergeSizeDirection=Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;t.sizeKick=t.mergeSizeDirection*.09;syncSelection();render();position(t);
  const msg=label(a)+' and '+label(b)+' combine to '+label(t);$('live').textContent=msg;setStatus(v===0?'Opposite terms make zero and disappear.':'Like terms combined. Their coefficients add.');
  if(v===0){t.textEl.textContent='0';requestAnimationFrame(()=>t.el.classList.add('cancel'));}
+ return t;
 }
 let physicsAccumulator=0;
 function frame(now){
@@ -257,7 +258,7 @@ function physicsStep(dt){
    if(t.age<0){t.x=source.x;t.y=source.y;t.el.style.opacity='0';position(t);continue;}
    const u=Math.min(1,t.age/.85),grow=1-Math.pow(1-u,3),rise=Math.max(0,(u-.15)/.85),ease=rise*rise*(3-2*rise);
    const start=t.inflateStart??.06;t.inflateScale=start+(1-start)*grow;t.el.style.opacity=String(Math.min(1,u*5));
-   const targetX=Math.max(t.r+8,Math.min(w-t.r-8,source.x)),targetY=t.inflateOrigin?Math.max(t.r+10,Math.min(h-t.r-10,source.y-60)):Math.max(t.r+10,h-t.r-20);
+   const targetX=Math.max(t.r,Math.min(w-t.r,t.launchTarget?.x??source.x)),targetY=t.launchTarget?Math.max(t.r,Math.min(h-t.r,t.launchTarget.y)):(t.inflateOrigin?Math.max(t.r+10,Math.min(h-t.r-10,source.y-60)):Math.max(t.r+10,h-t.r-20));
    t.x=source.x+(targetX-source.x)*ease;t.y=source.y+(targetY-source.y)*ease;
    const tile=$('term-'+t.id);if(tile)tile.style.setProperty('--lift-opacity',String(1-.78*grow));position(t);
    if(u===1){t.state='air';t.age=0;t.launch=.35;t.inflateScale=1;t.el.classList.remove('inflating');render();}
@@ -416,7 +417,14 @@ function showEnteredExpression(){
 $('show').addEventListener('click',showEnteredExpression);
 $('form').addEventListener('submit',e=>{e.preventDefault();showEnteredExpression();});
 $('input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();showEnteredExpression();}});
-$('lift').onclick=()=>{terms.filter(t=>t.state==='rest').forEach((t,i)=>lift(t,i*.12));field.querySelector('.hint').textContent='Click like terms to combine them in any order. Click Unbubble when you’re ready.';};
+$('lift').onclick=()=>{const resting=terms.filter(t=>t.state==='rest');
+ const columns=Math.min(resting.length,Math.max(1,Math.ceil(Math.sqrt(resting.length*field.clientWidth/Math.max(1,field.clientHeight)))));
+ const rows=Math.ceil(resting.length/columns);
+ const slots=shuffled(Array.from({length:resting.length},(_,i)=>({
+  x:((i%columns)+.5)*field.clientWidth/columns,
+  y:(Math.floor(i/columns)+.5)*field.clientHeight/rows
+ })));
+ resting.forEach((t,i)=>lift(t,i*.12,slots[i]));field.querySelector('.hint').textContent='Click like terms to combine them in any order. Click Unbubble when you’re ready.';};
 $('done').onclick=()=>{
  if(pending)return;
  if(mergeJobs.length){unbubbleRequested=true;setStatus('Finishing the combinations before returning them to the board.');return;}
@@ -516,15 +524,29 @@ function startFusion(a,b){
 function advanceMerges(dt){
  for(const j of [...mergeJobs]){
  if(!terms.includes(j.a)||!terms.includes(j.b)){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);continue;}
+ const previousPhase=Math.max(0,j.age-.1)*11;
  j.age+=dt;const u=Math.min(1,j.age/2.1),opening=Math.min(1,j.age/.30),ease=opening*opening*(3-2*opening),r=j.r,sep=j.sep*(1-ease),age=Math.max(0,j.age-.1),pts=[];
  for(let i=0;i<128;i++){const th=i/128*Math.PI*2,cs=Math.cos(th),sn=Math.sin(th);
  const outer=sep*Math.abs(cs)+Math.sqrt(Math.max(0,r*r-sep*sep*sn*sn));
- const wave=r*(1-Math.exp(-age*14))*Math.exp(-age*2.8)*(1-u**4)*(.15*Math.sin(age*11)*Math.cos(2*th)+.035*Math.sin(age*15)*Math.sin(3*th));
+ const wave=r*(1-Math.exp(-age*14))*Math.exp(-age*2.8)*(1-u**4)*(.15*Math.sin(age*11)*Math.cos(2*th)+.035*Math.sin(age*11)*Math.sin(3*th));
  const radius=Math.max(outer,r*Math.sqrt(ease)*.65)+wave,x=radius*cs,y=radius*sn;pts.push([j.cx+x*Math.cos(j.angle)-y*Math.sin(j.angle),j.cy+x*Math.sin(j.angle)+y*Math.cos(j.angle)]);}
  j.path.setAttribute('d',filmPath(pts));
  j.resultLabel.style.opacity=String(ease);
  for(const [t,sign] of [[j.a,-1],[j.b,1]]){t.x=j.cx+sign*sep*Math.cos(j.angle);t.y=j.cy+sign*sep*Math.sin(j.angle);t.textEl.style.opacity=String(1-ease);position(t);}
- if(u===1){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);const returning=unbubbleRequested;commitBubbleMerge(j.a,j.b);unbubbleRequested=unbubbleRequested||returning;}
+ // Both deformation modes pass through zero together every half cycle.
+ const roundAgain=Math.floor(age*11/Math.PI)>Math.floor(previousPhase/Math.PI);
+ let next;
+ if((roundAgain||u===1)&&!unbubbleRequested&&!dragSession&&!pending&&j.a.chosen&&j.b.chosen&&clean(j.a.v+j.b.v)!==0){
+  next=terms.find(t=>t.state==='air'&&t.chosen&&t.type===j.a.type&&!t.dragging&&!(t.hold>0)&&Math.hypot(t.x-j.cx,t.y-j.cy)<=t.r+r);
+ }
+ if(next||u===1){
+  j.bridge.remove();
+  mergeJobs=mergeJobs.filter(job=>job!==j);
+  const returning=unbubbleRequested;
+  const merged=commitBubbleMerge(j.a,j.b);
+  unbubbleRequested=unbubbleRequested||returning;
+  if(next&&merged)requestCombination(merged,next,'bubble');
+ }
  }
  if(unbubbleRequested&&!mergeJobs.length)$('done').onclick();
 }
