@@ -66,7 +66,7 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 #answer-panel{border:1px solid #a9bfd9;background:#f2f7ff;border-radius:12px;padding:12px}#answer-panel h2{font-size:13px;font-weight:600}#answer-pair{font-size:24px;font-weight:600;margin:10px 0;word-break:break-word}#answer-form{display:block;margin:0}#answer-form label{font-size:12px;display:block;margin-bottom:5px}.answer-entry{display:flex;gap:6px}#answer-input{font-size:20px;width:100%;padding:8px;min-height:42px;border-radius:8px}.answer-entry button{padding:9px;font-size:13px}#answer-feedback{font-size:13px;line-height:1.4;min-height:18px;margin-top:7px;color:#355b7e}.answer-active .bubble,.answer-active .term{pointer-events:none}.history-highlight{outline:3px solid #304e70!important;outline-offset:5px;box-shadow:0 0 0 8px #849dba35!important}
 #completion{display:flex;align-items:center;flex-wrap:wrap;gap:7px 14px;flex:none;padding:10px 13px;border:1px solid #bed0e7;border-radius:11px;background:#f5f9ff;font-size:12px}#completion strong{font-size:20px}#completion>div{display:flex;gap:6px;margin-left:auto}#completion button{font-size:11px;padding:7px 9px}
 /* The bubble film moves independently of its mathematical label. */
-.bubble{background:none;border:none;box-shadow:none;overflow:visible;border-radius:50%;padding:0}.bubble:before{display:none}.bubble-skin{position:absolute;inset:0;border:1.7px solid var(--edge);border-radius:50%;background:radial-gradient(ellipse at 29% 20%,#ffffffbd 0%,#ffffff18 24%,transparent 45%,var(--wash) 80%,var(--fill) 100%);box-shadow:inset 3px 5px 10px #ffffffaa,inset -4px -4px 9px color-mix(in srgb,var(--fill),transparent 55%),0 4px 10px #243c5a0b;will-change:transform;pointer-events:none}.bubble-skin:before{content:'';position:absolute;left:16%;top:13%;width:29%;height:14%;border-radius:50%;border-top:3px solid #fff;transform:rotate(-35deg);opacity:.8}.bubble-skin:after{content:'';position:absolute;right:14%;bottom:12%;width:16%;height:10%;border-radius:50%;border-bottom:2px solid #fff9;transform:rotate(-25deg)}.bubble-label{position:relative;z-index:1;pointer-events:none;font-weight:650;text-shadow:0 1px 3px #fff}.merge-neck{position:absolute;pointer-events:none;background:var(--fill);opacity:.5;border-radius:50%;box-shadow:inset 0 2px 4px #ffffffd9;transform-origin:center}.bubble.fusing{pointer-events:none}.bubble.selected{outline:3px solid var(--ink);outline-offset:5px}
+.bubble{background:none;border:none;box-shadow:none;overflow:visible;border-radius:50%;padding:0}.bubble:before{display:none}.bubble-skin{position:absolute;inset:0;border:1.7px solid var(--edge);border-radius:50%;background:radial-gradient(ellipse at 29% 20%,#ffffffbd 0%,#ffffff18 24%,transparent 45%,var(--wash) 80%,var(--fill) 100%);box-shadow:inset 3px 5px 10px #ffffffaa,inset -4px -4px 9px color-mix(in srgb,var(--fill),transparent 55%),0 4px 10px #243c5a0b;will-change:transform;pointer-events:none}.bubble-skin:before{content:'';position:absolute;left:16%;top:13%;width:29%;height:14%;border-radius:50%;border-top:3px solid #fff;transform:rotate(-35deg);opacity:.8}.bubble-skin:after{content:'';position:absolute;right:14%;bottom:12%;width:16%;height:10%;border-radius:50%;border-bottom:2px solid #fff9;transform:rotate(-25deg)}.bubble-label{position:relative;z-index:1;pointer-events:none;font-weight:650;text-shadow:0 1px 3px #fff}.merge-neck{position:absolute;pointer-events:none;background:var(--fill);opacity:.5;border-radius:50%;box-shadow:inset 0 2px 4px #ffffffd9;transform-origin:center}.bubble.fusing{pointer-events:auto;cursor:default}.bubble.selected{outline:3px solid var(--ink);outline-offset:5px}
 @media(max-width:800px){main{padding:9px;gap:8px}h1{font-size:24px}.work-layout{grid-template-columns:minmax(0,1fr) 7px 235px;gap:5px}#sidebar{padding:10px;gap:9px}.keypad{grid-template-columns:repeat(5,minmax(24px,1fr))}#input{font-size:22px}#form{flex-wrap:wrap}#form button{padding:8px 12px}.term{padding:var(--tray-pad,8px) 10px}}
 @media(max-width:540px){main{padding:7px}header{min-height:35px}.header-actions button{font-size:11px;padding:7px}h1{font-size:21px}.work-layout{grid-template-columns:minmax(0,1fr) 170px;gap:7px}#divider{display:none}#sidebar{padding:8px;border-radius:12px}#answer-pair{font-size:19px}.answer-entry{flex-wrap:wrap}#answer-input{font-size:18px;min-height:36px}.field-controls button{font-size:13px;padding:9px 11px}.field-controls span{display:none}.expression-wrap{padding:10px 7px;min-height:80px}.caption{font-size:9px}.term{padding:var(--tray-pad,5px) 7px}.segmented button{font-size:12px;padding:8px 4px}.step{font-size:14px;padding:8px}#completion{padding:8px}#completion>div{margin:0}#status{font-size:10px}.keypad button{font-size:12px}}
 @media(max-height:530px){main{padding:6px 10px;gap:5px}header{min-height:30px}h1{font-size:22px}.field-controls button{font-size:13px;padding:7px 18px}#sidebar{gap:7px;padding:9px}.expression-wrap{min-height:70px;padding:8px}.caption{margin-bottom:5px}#status{font-size:10px;min-height:13px}#editor{padding:6px}#input{font-size:22px;min-height:40px;padding:6px 10px}.keypad{grid-template-columns:repeat(10,minmax(20px,1fr));gap:3px;padding:4px;margin-top:4px}.keypad button{font-size:12px;min-height:22px;padding:2px}}
@@ -206,7 +206,7 @@ function position(t){if(t.el){
 }}
 
 function syncSelection(){
- for(const n of terms){if(!n.el)continue;const active=n.state==='air'&&!!n.chosen&&n.type===selected;n.el.classList.toggle('selected',active);n.el.setAttribute('aria-pressed',String(active));}
+ for(const n of terms){if(!n.el)continue;const active=n.state==='air'&&!!n.chosen;n.el.classList.toggle('selected',active);n.el.setAttribute('aria-pressed',String(active));}
 }
 function activateType(type){
  const counts={};for(const n of terms)if((n.state==='air'||n.state==='fusing')&&n.chosen)counts[n.type]=(counts[n.type]||0)+1;
@@ -270,12 +270,12 @@ function physicsStep(dt){
    if(u===1){burst(t);t.el.remove();t.el=null;t.state='rest';t.arrivalUntil=tick+.4;render();}continue;
   }
   if(t.state!=='air')continue;
-  if(t.hold>0){t.hold=Math.max(0,t.hold-dt);position(t);if(t.hold===0){setStatus('Selected like terms are moving together. You can click more.');}continue;}
+  if(t.hold>0)t.hold=Math.max(0,t.hold-dt);
   t.age+=dt;
   if(t.launch>0){t.launch-=dt;t.vx*=Math.exp(-dt*.4);}
   else{
-   let ax=0,ay=0;
-   const peers=t.chosen?terms.filter(n=>n!==t&&n.state==='air'&&!n.dragging&&dragSession?.t!==n&&n.chosen&&n.type===t.type):[];
+   let ax=0,ay=12;
+   const peers=t.chosen&&!(t.hold>0)?terms.filter(n=>n!==t&&n.state==='air'&&!n.dragging&&dragSession?.t!==n&&n.chosen&&n.type===t.type):[];
    if(peers.length){const near=peers.reduce((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)<Math.hypot(b.x-t.x,b.y-t.y)?a:b);const dx=near.x-t.x,dy=near.y-t.y,d=Math.hypot(dx,dy)||1;const force=Math.min(30,d*.45);ax+=dx/d*force;ay+=dy/d*force;}
    else{}
    t.vx=(t.vx+ax*dt)*Math.exp(-dt*1.5);t.vy=(t.vy+ay*dt)*Math.exp(-dt*1.5);
@@ -286,7 +286,7 @@ function physicsStep(dt){
   if(t.y<t.r){t.y=t.r;t.vy=Math.abs(t.vy)*.25;}if(t.launch<=0&&t.y>h-t.r){t.y=h-t.r;t.vy=-Math.abs(t.vy)*.25;}
   position(t);
  }
- const airborne=terms.filter(t=>t.state==='air'&&!t.dragging&&dragSession?.t!==t&&t.launch<=0&&!(t.hold>0));
+ const airborne=terms.filter(t=>t.state==='air'&&!t.dragging&&dragSession?.t!==t);
  for(let i=0;i<airborne.length;i++)for(let j=i+1;j<airborne.length;j++){
   const a=airborne[i],b=airborne[j];if(pending||a.state!=='air'||b.state!=='air'||!terms.includes(a)||!terms.includes(b))continue;
   const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||.01;
@@ -295,7 +295,7 @@ function physicsStep(dt){
    const total=a.r+b.r,overlap=total-d;
    const nx=d>.01?dx/d:1,ny=d>.01?dy/d:0;
    const closing=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
-   const force=Math.max(0,Math.min(110,Math.max(0,total*.90-d)*3+closing*2));
+   const force=Math.max(0,Math.min(900,overlap*48+closing*6));
    a.vx-=nx*force*dt;a.vy-=ny*force*dt;b.vx+=nx*force*dt;b.vy+=ny*force*dt;
    const compression=Math.min(.17,overlap/total*.55),angle=Math.atan2(dy,dx);
    const impact=closing>4?Math.min(.5,closing/150):0;
@@ -344,6 +344,8 @@ function inBoard(x,y){const r=$('tray').getBoundingClientRect();return x>=r.left
 function attachBubbleDrag(t,b){
  b.addEventListener('pointerdown',e=>{
   if(pending||t.state!=='air'||dragSession||e.button!==0)return;
+  const touching=t.chosen&&terms.find(n=>n!==t&&n.state==='air'&&n.chosen&&n.type===t.type&&Math.hypot(n.x-t.x,n.y-t.y)<=n.r+t.r);
+  if(touching&&requestCombination(t,touching,'bubble'))return;
   dragSession={t,b,id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};b.setPointerCapture(e.pointerId);
  });
  b.addEventListener('pointermove',e=>{
@@ -496,7 +498,7 @@ function undoCombination(){
 function requestCombination(a,b,source){
  if(pending||a===b||a.type!==b.type||!terms.includes(a)||!terms.includes(b))return false;
  if(source==='board'&&(a.state!=='rest'||b.state!=='rest'))return false;
- if(source==='bubble'&&dragSession)return false;
+ if(source==='bubble'&&(!a.chosen||!b.chosen||dragSession?.t===a||dragSession?.t===b))return false;
  if(source==='bubble'&&(a.state!=='air'||b.state!=='air'||a.dragging||b.dragging))return false;
  if(activityMode==='solve'){
   pending={a,b,source,attempts:0};$('answer-pair').textContent=label(a,true)+' '+label(b)+' = ?';$('answer-input').value='';$('answer-feedback').textContent='';$('answer-check').disabled=false;$('answer-input').disabled=false;$('answer-panel').hidden=false;$('stage').classList.add('answer-active');render();renderHistory();$('answer-input').focus();return true;
@@ -557,8 +559,9 @@ function updateCompletion(){
  $('completion').hidden=!finished;$('final-expression').textContent=finished?expressionText(live):'';$('board-caption').textContent=finished?'Simplified expression':'Your expression';$('tray').classList.toggle('complete',finished);
 }
 function clearBubbleSelections(){
- cancelActivity();selected=null;highlightedOrigins=[];
- for(const t of terms){t.chosen=false;t.hold=0;}
+ if(pending){pending=null;$('answer-panel').hidden=true;$('stage').classList.remove('answer-active');}
+ selected=null;highlightedOrigins=[];
+ for(const t of terms){if(t.state!=='fusing')t.chosen=false;t.hold=0;}
  syncSelection();highlightCurrent();render();renderHistory();setStatus('Selection cleared.');
 }
 function initializeWorkspace(){
