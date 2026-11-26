@@ -178,7 +178,7 @@ function sizeBubble(t){
 
 function setStatus(text){$('status').textContent=text;}
 function destination(t){const a=$('term-'+t.id).getBoundingClientRect(),f=field.getBoundingClientRect();return{x:a.left+a.width/2-f.left,y:a.top+a.height/2-f.top};}
-function bubble(t){const b=document.createElement('button');b.type='button';b.className='bubble pop';b.setAttribute('aria-label','Select '+label(t));b.setAttribute('aria-pressed','false');b.onclick=e=>{if(e&&e.detail===0)t.suppressClick=false;if(t.suppressClick){t.suppressClick=false;return;}selectBubble(t);};style(b,t.type);const skin=document.createElement('span');skin.className='bubble-skin';const text=document.createElement('span');text.className='bubble-label';text.textContent=label(t);b.append(skin,text);t.skin=skin;t.textEl=text;t.r=t.targetR=bubbleRadius(t);t.el=b;sizeBubble(t);field.append(b);attachBubbleDrag(t,b);}
+function bubble(t){const b=document.createElement('button');b.type='button';b.className='bubble pop';b.setAttribute('aria-label','Select '+label(t));b.setAttribute('aria-pressed','false');b.onclick=e=>{if(e&&e.detail===0)t.suppressClick=false;if(t.suppressClick){t.suppressClick=false;return;}selectBubble(t);};style(b,t.type);const skin=document.createElement('span');skin.className='bubble-skin';const text=document.createElement('span');text.className='bubble-label';text.textContent=label(t);b.append(skin,text);t.skin=skin;t.filmPath=null;t.textEl=text;t.r=t.targetR=bubbleRadius(t);t.el=b;sizeBubble(t);field.append(b);attachBubbleDrag(t,b);}
 
 function lift(t,delay=0,launchTarget=null){
  if(pending||t.state!=='rest')return;
