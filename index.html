@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Algebra Bubbles · v1.0</title>
+<title>Algebra Bubbles · v1.2</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#24354b;background:#f2f5fa;font-synthesis:none}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:30px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}h1{font-size:clamp(25px,4vw,38px);letter-spacing:-1px;margin:0 0 7px}p{margin:0;color:#617087;line-height:1.5}.legend{display:flex;gap:14px;white-space:nowrap;font-size:14px}.legend span{display:flex;align-items:center;gap:6px}.dot{width:11px;height:11px;border-radius:50%;background:var(--c)}form{display:flex;gap:10px;margin:25px 0 12px}input{min-width:0;flex:1;border:1px solid #ced8e6;background:white;border-radius:12px;padding:15px 18px;font:500 22px system-ui;color:#24354b}input:focus{outline:3px solid #4279d930;border-color:#4279d9}button{font:600 15px system-ui;cursor:pointer;border:0;border-radius:12px;padding:12px 20px;background:#24354b;color:white}button:hover{filter:brightness(1.12)}button:focus-visible{outline:3px solid #5275f5;outline-offset:4px}.secondary{background:white;color:#42536a;border:1px solid #d6deea}.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:15px}.toolbar button{padding:9px 14px;font-size:13px}.toolbar small{margin-left:auto;color:#617087}.stage{position:relative;height:clamp(430px,65vh,650px);background:radial-gradient(ellipse at 50% 30%,#fff,#f8faff 70%);border:1px solid #d8e1ed;border-radius:23px;overflow:hidden;box-shadow:0 15px 45px #203a5e09}.field{position:absolute;inset:0 0 118px;overflow:hidden}.hint{position:absolute;top:22px;left:20px;right:20px;text-align:center;color:#8793a5;font-size:14px;pointer-events:none}.expression-wrap{position:absolute;bottom:0;left:0;right:0;min-height:118px;padding:14px 18px 20px;background:#ffffffdc;border-top:1px solid #e3e9f2}.caption{font-size:11px;letter-spacing:1.7px;color:#79879a;text-align:center;text-transform:uppercase;margin-bottom:10px}.expression{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;min-height:49px}.term{background:var(--wash);border:1px solid var(--edge);color:var(--ink);padding:9px 15px;font-size:clamp(20px,3.5vw,29px);line-height:1.1;border-radius:11px;transition:opacity .2s,background .2s;white-space:nowrap}.term.air,.term.returning,.term.cancel{opacity:.22;pointer-events:none;border-style:dashed}.term.rest:hover{transform:translateY(-2px)}.bubble{position:absolute;width:var(--size);height:var(--size);display:flex;align-items:center;justify-content:center;border-radius:50%;color:var(--ink);background:radial-gradient(circle at 32% 24%,#ffffffec 0%,var(--wash) 34%,var(--fill) 100%);border:2px solid var(--edge);box-shadow:inset 0 0 15px #ffffffa0,0 7px 19px #25406318;user-select:none;pointer-events:none;will-change:transform;white-space:nowrap;font-size:var(--font);font-weight:650}.bubble:before{content:"";position:absolute;top:12%;left:20%;width:25%;height:12%;border-radius:50%;background:#ffffff85;transform:rotate(-30deg)}.bubble{cursor:pointer;pointer-events:auto;padding:0;filter:none!important}.bubble.selected{outline:4px solid var(--ink);outline-offset:5px}.bubble.returning,.bubble.cancel{pointer-events:none}.bubble.pop{animation:pop .38s ease-out}.bubble.cancel{transition:opacity 1s;opacity:0}.bubble small{font-size:13px}footer{display:flex;justify-content:space-between;gap:15px;margin-top:14px;color:#68788e;font-size:13px}#status{min-height:20px}#error{color:#a43135;font-size:14px;min-height:22px;margin:0 0 7px}#live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}@keyframes pop{0%{scale:.8}55%{scale:1.13}100%{scale:1}}@media(max-width:650px){main{padding:19px 12px}header{display:block}.legend{margin-top:15px}form{margin-top:18px}input{font-size:18px;padding:12px}.toolbar small{width:100%;margin:0}.stage{height:560px}.term{padding:8px 10px}footer{display:block}footer span{display:block;margin-bottom:5px}}
 
@@ -110,11 +110,15 @@ main{grid-template-rows:auto auto auto minmax(0,1fr) auto}.entry-controls{min-wi
 #answer-form{display:flex;align-items:center;gap:5px}#answer-pair{margin:0;font-size:18px}#answer-input{width:5em;min-width:0}#answer-check{padding:7px}
 #answer-panel.rejected #answer-input{border-color:#ad3349;background:#ffe2e5}#answer-panel.rejected{animation:reject .42s forwards}@keyframes reject{60%{opacity:1}to{opacity:0}}
 @media(max-width:650px){#work-layout,#work-layout.no-steps{grid-template-columns:108px minmax(0,1fr)}#sidebar:not([hidden]){position:absolute;right:6px;bottom:8px;max-width:130px;max-height:23vh;z-index:8}#controls{padding:4px}#controls .segmented button{padding:5px}}
+main{max-width:none;padding:5px 8px;gap:5px}header{justify-content:flex-start;gap:8px}header h1{font-size:22px}
+#work-layout{grid-template-columns:clamp(108px,12vw,170px) minmax(0,1fr) clamp(100px,10vw,155px);gap:5px}#work-layout.no-steps{grid-template-columns:clamp(108px,12vw,170px) minmax(0,1fr)}
+#controls{gap:5px;padding:4px}#tray{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;padding:4px 7px}#expression{min-height:26px}#board-caption{margin-bottom:2px}#tray>button{padding:7px 10px}#tray .term{padding-block:4px}
+@media(max-width:650px){#work-layout{grid-template-columns:100px minmax(0,1fr)}#tray{gap:2px;padding-inline:2px}#tray>button{padding:5px 3px;font-size:11px}}
 </style>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b0deb9e26d5b4ab8afbd2ccc45627468"}'></script><!-- End Cloudflare Web Analytics -->
 </head>
 <body><main>
-<header><h1>Algebra Bubbles</h1><span class="release-version">v1.1</span><div class="header-actions"><button id="make-own" class="secondary">Make your own</button><button id="help" class="secondary">Help</button></div></header>
+<header><h1>Algebra Bubbles</h1><span class="release-version">v1.2</span><div class="header-actions"><button id="make-own" class="secondary">Make your own</button><button id="help" class="secondary">Help</button></div></header>
 <div class="work-layout" id="work-layout">
 <aside id="controls"></aside><div class="math-area">
 <section id="editor" hidden><form id="form"><input id="input" aria-label="Enter an expression" value="" placeholder="3x + 2y − x + 5" autocomplete="off" spellcheck="false"><button id="show" type="button">Show expression</button></form><div id="keypad" class="keypad" role="group" aria-label="Expression keypad"></div><div id="error" role="alert"></div></section>
@@ -177,11 +181,12 @@ function fitTray(){
  field.style.top=tray.getBoundingClientRect().height+'px';
  for(const t of terms)if(t.el)t.targetR=bubbleRadius(t);
 }
+let initialTermCount=1;
 function bubbleRadius(t){
- const w=field.clientWidth,editor=$('editor');
- const h=Math.max(1,field.clientHeight),count=Math.max(1,terms.filter(n=>n.state!=='cancel').length);
- const space=Math.sqrt(Math.max(1,w*h)*.30/(Math.PI*count));
- return Math.max(20,Math.min(count<=4?105:82,Math.max(30,space*(count<=4?1.18:1)),w*.18,h*.25));
+ const w=field.clientWidth,h=field.clientHeight;
+ const base=Math.min(72,Math.max(30,Math.sqrt(w*h*.30/(Math.PI*initialTermCount))));
+ const growth=1+Math.min(.16,.06*Math.log2(t.origins?.length||1));
+ return Math.max(20,Math.min(base*growth,w*.18,h*.25));
 }
 function sizeBubble(t){
  const len=label(t).length;t.el.style.setProperty('--size',t.r*2+'px');t.el.style.setProperty('--font',Math.max(12,Math.min(34,160/len,t.r*.55))+'px');
@@ -451,7 +456,7 @@ expression.addEventListener('keydown',e=>{
  e.preventDefault();reorderTerm(t,terms.indexOf(t)+(['ArrowLeft','ArrowUp'].includes(e.key)?-1:1));$('term-'+t.id).focus();
 });
 
-function load(source){let parsed;try{parsed=parse(source);}catch(e){$('error').textContent=e.message;return;}$('error').textContent='';if(dragSession?.ghost)dragSession.ghost.remove();dragSession=null;$('tray').classList.remove('drop-ready');field.querySelectorAll('.bubble').forEach(b=>b.remove());cancelActivity();history=[];highlightedOrigins=[];terms=parsed;selected=null;original=source;renderHistory();$('reset').disabled=false;field.querySelector('.hint').textContent='Click Bubble below to release the terms.';render();setStatus('Expression ready. Click Bubble to release the terms.');$('live').textContent='Expression loaded.';}
+function load(source){let parsed;try{parsed=parse(source);}catch(e){$('error').textContent=e.message;return;}$('error').textContent='';if(dragSession?.ghost)dragSession.ghost.remove();dragSession=null;$('tray').classList.remove('drop-ready');field.querySelectorAll('.bubble').forEach(b=>b.remove());cancelActivity();history=[];highlightedOrigins=[];terms=parsed;initialTermCount=Math.max(1,parsed.length);selected=null;original=source;renderHistory();$('reset').disabled=false;field.querySelector('.hint').textContent='Click Bubble below to release the terms.';render();setStatus('Expression ready. Click Bubble to release the terms.');$('live').textContent='Expression loaded.';}
 function showEnteredExpression(){
  try{parse($('input').value);$('editor').hidden=true;$('make-own').setAttribute('aria-expanded','false');load($('input').value);}catch(e){$('error').textContent='Unable to show the expression: '+e.message;}
 }
@@ -622,7 +627,8 @@ function initializeWorkspace(){
  const stepsVisible=show.firstChild;
  const toggleSteps=()=>{$('sidebar').hidden=!stepsVisible.checked;$('work-layout').classList.toggle('no-steps',!stepsVisible.checked);fitTray();};
  stepsVisible.onchange=toggleSteps;
- controls.append(document.querySelector('.field-controls'),document.querySelector('.segmented'),$('timed-panel'),document.querySelector('.practice-controls'),$('make-own'),$('editor'),$('undo'),$('reset'),$('help'),settings);
+ $('tray').prepend($('lift'));$('tray').append($('done'));document.querySelector('.field-controls').hidden=true;
+ controls.append(document.querySelector('.segmented'),$('timed-panel'),document.querySelector('.practice-controls'),$('make-own'),$('editor'),$('undo'),$('reset'),$('help'),settings);
  const more=$('completion').querySelector('div');controls.append(more);more.id='completion-actions';
  $('stage').append($('answer-panel'));
 
@@ -677,14 +683,14 @@ function timedInfo(){
  const best=timedBest();$('timed-best').textContent=best?'Personal best: '+best.toFixed(1)+'s':'Complete an attempt to set your best time.';
 }
 function timedLock(){
- const locked=timed.mode;$('stage').inert=timed.active&&timed.started===null;
+ const locked=timed.mode;$('expression').inert=field.inert=timed.active&&timed.started===null;
  for(const id of ['make-own','example','reset','another','another-order'])$(id).disabled=locked;
  $('undo').disabled=!history.length&&!pending;
  $('timed-level').disabled=timed.active;$('timed-start').hidden=timed.active;$('timed-stop').hidden=!timed.active;
 
 }
 function leaveTimedMode(){
- if(!timed.mode)return;timed.active=false;timed.mode=false;$('stage').inert=false;cancelActivity();
+ if(!timed.mode)return;timed.active=false;timed.mode=false;$('expression').inert=field.inert=false;$('stage').inert=false;cancelActivity();
  document.querySelector('main').classList.remove('timed-mode','timed-running','timed-ended');$('neutral').onchange();
  $('timed-panel').hidden=true;$('timed-mode').setAttribute('aria-pressed','false');
  for(const id of ['make-own','example','reset','undo','another','another-order'])$(id).disabled=false;
