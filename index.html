@@ -199,10 +199,19 @@ function surfaceStep(t,dt){
 }
 function filmContact(t,angle,depth,impact){initFilm(t);t.contacts.push({angle,depth});if(impact>0)for(let i=0;i<FILM_N;i++){const d=Math.atan2(Math.sin(i/FILM_N*Math.PI*2-angle),Math.cos(i/FILM_N*Math.PI*2-angle));t.filmV[i]-=impact*Math.exp(-d*d/.04);}}
 function filmPath(points){return points.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+','+p[1].toFixed(2)).join(' ')+'Z';}
+function filmGradient(id){
+ return `<defs><radialGradient id="${id}" cx="50%" cy="50%" r="51%" fx="44%" fy="41%">
+ <stop offset="0%" stop-color="var(--wash)" stop-opacity=".26"/>
+ <stop offset="65%" stop-color="var(--wash)" stop-opacity=".45"/>
+ <stop offset="88%" stop-color="var(--fill)" stop-opacity=".43"/>
+ <stop offset="96%" stop-color="white" stop-opacity=".82"/>
+ <stop offset="100%" stop-color="var(--fill)" stop-opacity=".70"/>
+ </radialGradient></defs>`;
+}
 function position(t){if(t.el){
  t.el.style.transform='translate('+(t.x-t.r)+'px,'+(t.y-t.r)+'px) scale('+(t.inflateScale??1)+')';
  if(t.skin){initFilm(t);if(!t.filmPath){
- t.skin.innerHTML='<svg viewBox="-1.25 -1.25 2.5 2.5" style="position:absolute;inset:-12.5%;width:125%;height:125%;overflow:visible"><path class="film-outline" fill="var(--wash)" fill-opacity=".65" stroke="var(--edge)" stroke-width=".025"/><path d="M -.64,-.57 Q -.48,-.80 -.22,-.82" fill="none" stroke="white" stroke-opacity=".75" stroke-width=".035" stroke-linecap="round"/></svg>';
+ t.skin.innerHTML='<svg viewBox="-1.25 -1.25 2.5 2.5" style="position:absolute;inset:-12.5%;width:125%;height:125%;overflow:visible">'+filmGradient('film-'+t.id)+'<path class="film-outline" fill="url(#film-'+t.id+')"  stroke="var(--edge)" stroke-width=".025"/><path d="M -.72,-.45 Q -.60,-.73 -.34,-.80" fill="none" stroke="white" stroke-opacity=".95" stroke-width=".060" stroke-linecap="round"/><path d="M .69,.46 Q .61,.63 .43,.72" fill="none" stroke="white" stroke-opacity=".75" stroke-width=".026" stroke-linecap="round"/></svg>';
  t.filmPath=t.skin.querySelector('.film-outline');}
  t.skin.style.transform='none';t.skin.style.scale='';
  t.filmPath.setAttribute('d',filmPath(t.film.map((q,i)=>{const th=i/FILM_N*Math.PI*2;return[(1+q)*Math.cos(th),(1+q)*Math.sin(th)];})));
@@ -536,8 +545,8 @@ function finishAnswer(){const p=pending;if(!p)return;pending=null;$('answer-pane
 function startFusion(a,b){
  const bridge=document.createElementNS('http://www.w3.org/2000/svg','svg');
  bridge.classList.add('merge-neck');bridge.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;opacity:1;background:none;box-shadow:none';
- style(bridge,a.type);bridge.innerHTML='<path fill="var(--wash)" fill-opacity=".65" stroke="var(--edge)" stroke-width="2"/>';field.prepend(bridge);
- const j={a,b,bridge,path:bridge.firstChild,age:0,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,sep:Math.hypot(b.x-a.x,b.y-a.y)/2,angle:Math.atan2(b.y-a.y,b.x-a.x),r:(a.r+b.r)/2};
+ style(bridge,a.type);bridge.innerHTML=filmGradient('join-'+a.id)+'<path fill="url(#join-'+a.id+')"  stroke="var(--edge)" stroke-width="2"/>';field.prepend(bridge);
+ const j={a,b,bridge,path:bridge.querySelector("path"),age:0,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,sep:Math.hypot(b.x-a.x,b.y-a.y)/2,angle:Math.atan2(b.y-a.y,b.x-a.x),r:(a.r+b.r)/2};
  const result=clean(a.v+b.v);j.resultLabel=document.createElementNS('http://www.w3.org/2000/svg','text');j.resultLabel.textContent=result===0?'0':label({v:result,type:a.type});
  j.resultLabel.setAttribute('x',j.cx);j.resultLabel.setAttribute('y',j.cy);j.resultLabel.setAttribute('text-anchor','middle');j.resultLabel.setAttribute('dominant-baseline','central');j.resultLabel.setAttribute('fill','var(--ink)');j.resultLabel.style.fontWeight='650';j.resultLabel.style.fontSize=Math.max(12,Math.min(34,160/j.resultLabel.textContent.length,j.r*.55))+'px';j.resultLabel.style.opacity='0';bridge.append(j.resultLabel);
  for(const t of [a,b]){t.fuseOriginalX=t.x;t.fuseOriginalY=t.y;t.state='fusing';t.vx=t.vy=0;t.el.classList.add('fusing');}mergeJobs.push(j);render();
