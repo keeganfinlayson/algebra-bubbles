@@ -152,7 +152,7 @@ main{max-width:none;padding:5px 8px;gap:5px}header{justify-content:flex-start;ga
 <div class="sidebar-bottom"><button id="reset" class="secondary" disabled>Restart expression</button></div>
 </aside></div><div id="live" role="status" aria-live="polite"></div>
 </main>
-<dialog id="help-dialog" aria-labelledby="help-title"><div class="help-heading"><h2 id="help-title">Algebra Bubbles</h2><button id="help-close" class="secondary">Close</button></div><ol><li>Choose a practice type and click New expression. Make your own opens the entry bar and keypad.</li><li>Drag boxes to reorder them, drop one onto a like term to combine, or drag downward to make a bubble. Bubble lifts the whole expression.</li><li>Click matching bubbles in any order. While dragging a bubble, move the pointer over other matching bubbles to select them too, then release to combine. Unlike terms never combine. Click empty space or press Escape to clear all selections.</li><li>Explore combines automatically. Solve asks for the resulting term beside the visible expression. An incorrect answer releases the pair.</li><li>Drag a bubble to the board or click Unbubble to return all. Select a history step to highlight its current result; Undo restores the previous combination.</li></ol><p>Supported: constants, x, y, x², y², xy. You can type x^2, y^2 and x*y. Use Alt + arrow keys to reorder board terms. Use Settings to hide the steps. Neutral colors removes color hints.</p></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="help-heading"><h2 id="help-title">Algebra Bubbles</h2><button id="help-close" class="secondary">Close</button></div><ol><li>Choose a practice type and click New expression. Make your own opens the entry bar and keypad.</li><li>Drag boxes to reorder them, drop one onto a like term to combine, or drag downward to make a bubble. Bubble lifts the whole expression.</li><li>Click matching bubbles in any order. While dragging a bubble, move the pointer over other matching bubbles to select them too, then release to combine. Unlike terms never combine. Click empty space or press Escape to clear all selections.</li><li>Explore combines automatically. Solve asks for the resulting term beside the visible expression. An incorrect answer releases the pair.</li><li>Drag a bubble to the board or click Unbubble to return all. Select a history step to highlight its current result; Undo restores the previous combination.</li></ol><p>Supported: constants, x, y, x², y², xy, x²y, xy², x²y². Zen Explore combines automatically; Zen Solve asks for the result. You can type x^2, y^2 and x*y. Use Alt + arrow keys to reorder board terms. Use Settings to hide the steps. Neutral colors removes color hints.</p></dialog>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), field=$('field'), expression=$('expression');
@@ -174,7 +174,7 @@ function parse(source){
  return pieces.map((p,i)=>{
   if(i>0&&!/^[+-]/.test(p))throw Error('Separate terms with + or −.');
   const m=p.match(/^([+-]?)(?:(\d+(?:\.\d{0,6})?|\.\d{1,6})(x²y²|x²y|xy²|x²|y²|xy|x|y)?|(x²y²|x²y|xy²|x²|y²|xy|x|y))$/);
-  if(!m)throw Error('Use numbers, x, y, x², y², or xy. You can type x^2, y^2, and x*y. Grouped expressions need to be expanded first.');
+  if(!m)throw Error('Use numbers or terms with x and y, each to a power of at most 2. You can type x^2, y^2, and x*y. Grouped expressions need to be expanded first.');
   const v=(m[1]==='-'?-1:1)*(m[2]===undefined?1:Number(m[2]));
   if(Math.abs(v)>1000000)throw Error('Keep each coefficient between −1,000,000 and 1,000,000.');
   return {id:++uid,v,type:m[3]||m[4]||'c',state:'rest'};
@@ -207,7 +207,7 @@ function bubbleRadius(t){
  const w=field.clientWidth,h=field.clientHeight;
  const columns=launchColumns(initialTermCount,w,h),rows=Math.ceil(initialTermCount/columns);
  const base=Math.min(Math.sqrt(w*h*.44/(Math.PI*initialTermCount)),.46*w/columns,.46*h/rows);
- const growth=zen?1+Math.min(.45,.09*Math.log2(t.origins?.length||1)):1+Math.min(.16,.06*Math.log2(t.origins?.length||1));
+ const growth=zen?1+Math.min(.45,.09*Math.log2(t.zenMass||t.origins?.length||1)):1+Math.min(.16,.06*Math.log2(t.origins?.length||1));
  return Math.max(20,Math.min(base*growth,w*.18,h*.25));
 }
 function sizeBubble(t){
@@ -279,8 +279,8 @@ function commitBubbleMerge(a,b){
  if(timed.active&&performance.now()-timed.started>=timedSpec().limit*1000){finishTimed(false);return;}
  recordCombination(a,b);if(zen)zenSound(clean(a.v+b.v)===0?'pop':'merge');
  const left=Math.min(terms.indexOf(a),terms.indexOf(b));const v=clean(a.v+b.v);
- const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:false};
- a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick+.7;t.mergeSizeDirection=zen?1:Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;t.sizeKick=t.mergeSizeDirection*.09;syncSelection();render();position(t);
+ const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:false,zenMass:(a.zenMass||a.origins?.length||1)+(b.zenMass||b.origins?.length||1)};
+ a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=zen?Math.max(a.r,b.r):(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick+.7;t.mergeSizeDirection=zen?1:Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;t.sizeKick=t.mergeSizeDirection*.09;syncSelection();render();position(t);
  const msg=label(a)+' and '+label(b)+' combine to '+label(t);$('live').textContent=msg;setStatus(v===0?'Opposite terms make zero and disappear.':'Like terms combined. Their coefficients add.');
  if(v===0){t.textEl.textContent='0';requestAnimationFrame(()=>t.el.classList.add('cancel'));}
  return t;
@@ -545,7 +545,7 @@ function snapshotTerms(){return terms.filter(t=>t.state!=='cancel').map(t=>({id:
 function expressionText(items=terms){return items.filter(t=>t.state!=='cancel').map((t,i)=>label(t,i===0)).join(' ')||'0';}
 function recordCombination(a,b){
  const value=clean(a.v+b.v),result=value===0?'0':label({v:value,type:a.type},true);
- history.push({before:snapshotTerms(),sources:[...(a.origins||[a.id]),...(b.origins||[b.id])],text:label(a,true)+' '+label(b)+' = '+result,result});highlightedOrigins=[];renderHistory();
+ history.push({before:zen?null:snapshotTerms(),sources:[...(a.origins||[a.id]),...(b.origins||[b.id])],text:label(a,true)+' '+label(b)+' = '+result,result});highlightedOrigins=[];renderHistory();
 }
 function renderHistory(){
  const list=$('steps');list.replaceChildren();$('step-count').textContent=history.length;$('undo').disabled=!history.length&&!pending;
@@ -557,7 +557,7 @@ function cancelFusions(){unbubbleRequested=false;for(const j of mergeJobs){j.bri
 function cancelActivity(){cancelFusions();pending=null;$('answer-panel').hidden=true;$('stage').classList.remove('answer-active');}
 function undoCombination(){
  if(pending){cancelActivity();for(const t of terms){t.chosen=false;t.hold=0;}syncSelection();render();renderHistory();setStatus('Combination canceled.');return;}
- const step=history.pop();if(!step)return;cancelActivity();if(dragSession?.ghost)dragSession.ghost.remove();dragSession=null;field.querySelectorAll('.bubble,.burst,.merge-neck').forEach(el=>el.remove());
+ if(zen)return;const step=history.pop();if(!step)return;cancelActivity();if(dragSession?.ghost)dragSession.ghost.remove();dragSession=null;field.querySelectorAll('.bubble,.burst,.merge-neck').forEach(el=>el.remove());
  terms=step.before.map(t=>({...t,origins:[...t.origins]}));selected=null;highlightedOrigins=[];
  for(const t of terms)if(t.state==='air'){bubble(t);t.inflateScale=1;position(t);}
  renderHistory();render();setStatus('Undid the last combination.');
@@ -797,7 +797,7 @@ function zenRefill(){
 function setZen(on){
  if(on===zen)return;if(on&&timed.mode)leaveTimedMode();
  cancelActivity();dragSession=null;zen=on;document.querySelector('main').classList.toggle('zen-mode',on);$('zen-toggle').checked=on;$('zen-audio').hidden=!on;
- if(on){load('0');terms=[];original='Zen';initialTermCount=12;const types=shuffled([...ZEN_TYPES]).slice(0,6);for(const type of types){zenSpawn(type);zenSpawn(type);}zenNext=tick+.65;render();}else{load(randomExample());}
+ if(on){const showSteps=[...$('controls').querySelectorAll('label')].find(el=>el.textContent.includes('Show steps'))?.querySelector('input');if(showSteps&&!showSteps.checked){showSteps.checked=true;showSteps.onchange();}load('0');terms=[];original='Zen';initialTermCount=12;const types=shuffled([...ZEN_TYPES]).slice(0,6);for(const type of types){zenSpawn(type);zenSpawn(type);}zenNext=tick+.65;render();}else{load(randomExample());}
  zenAudioUpdate();
 }
 function initializeZen(){
