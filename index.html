@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Algebra Bubbles · v1.19</title>
+<title>Algebra Bubbles · v1.20</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#24354b;background:#f2f5fa;font-synthesis:none}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:30px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}h1{font-size:clamp(25px,4vw,38px);letter-spacing:-1px;margin:0 0 7px}p{margin:0;color:#617087;line-height:1.5}.legend{display:flex;gap:14px;white-space:nowrap;font-size:14px}.legend span{display:flex;align-items:center;gap:6px}.dot{width:11px;height:11px;border-radius:50%;background:var(--c)}form{display:flex;gap:10px;margin:25px 0 12px}input{min-width:0;flex:1;border:1px solid #ced8e6;background:white;border-radius:12px;padding:15px 18px;font:500 22px system-ui;color:#24354b}input:focus{outline:3px solid #4279d930;border-color:#4279d9}button{font:600 15px system-ui;cursor:pointer;border:0;border-radius:12px;padding:12px 20px;background:#24354b;color:white}button:hover{filter:brightness(1.12)}button:focus-visible{outline:3px solid #5275f5;outline-offset:4px}.secondary{background:white;color:#42536a;border:1px solid #d6deea}.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:15px}.toolbar button{padding:9px 14px;font-size:13px}.toolbar small{margin-left:auto;color:#617087}.stage{position:relative;height:clamp(430px,65vh,650px);background:radial-gradient(ellipse at 50% 30%,#fff,#f8faff 70%);border:1px solid #d8e1ed;border-radius:23px;overflow:hidden;box-shadow:0 15px 45px #203a5e09}.field{position:absolute;inset:0 0 118px;overflow:hidden}.hint{position:absolute;top:22px;left:20px;right:20px;text-align:center;color:#8793a5;font-size:14px;pointer-events:none}.expression-wrap{position:absolute;bottom:0;left:0;right:0;min-height:118px;padding:14px 18px 20px;background:#ffffffdc;border-top:1px solid #e3e9f2}.caption{font-size:11px;letter-spacing:1.7px;color:#79879a;text-align:center;text-transform:uppercase;margin-bottom:10px}.expression{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;min-height:49px}.term{background:var(--wash);border:1px solid var(--edge);color:var(--ink);padding:9px 15px;font-size:clamp(20px,3.5vw,29px);line-height:1.1;border-radius:11px;transition:opacity .2s,background .2s;white-space:nowrap}.term.air,.term.returning,.term.cancel{opacity:.22;pointer-events:none;border-style:dashed}.term.rest:hover{transform:translateY(-2px)}.bubble{position:absolute;width:var(--size);height:var(--size);display:flex;align-items:center;justify-content:center;border-radius:50%;color:var(--ink);background:radial-gradient(circle at 32% 24%,#ffffffec 0%,var(--wash) 34%,var(--fill) 100%);border:2px solid var(--edge);box-shadow:inset 0 0 15px #ffffffa0,0 7px 19px #25406318;user-select:none;pointer-events:none;will-change:transform;white-space:nowrap;font-size:var(--font);font-weight:650}.bubble:before{content:"";position:absolute;top:12%;left:20%;width:25%;height:12%;border-radius:50%;background:#ffffff85;transform:rotate(-30deg)}.bubble{cursor:pointer;pointer-events:auto;padding:0;filter:none!important}.bubble.selected{outline:4px solid var(--ink);outline-offset:5px}.bubble.returning,.bubble.cancel{pointer-events:none}.bubble.pop{animation:pop .38s ease-out}.bubble.cancel{transition:opacity 1s;opacity:0}.bubble small{font-size:13px}footer{display:flex;justify-content:space-between;gap:15px;margin-top:14px;color:#68788e;font-size:13px}#status{min-height:20px}#error{color:#a43135;font-size:14px;min-height:22px;margin:0 0 7px}#live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}@keyframes pop{0%{scale:.8}55%{scale:1.13}100%{scale:1}}@media(max-width:650px){main{padding:19px 12px}header{display:block}.legend{margin-top:15px}form{margin-top:18px}input{font-size:18px;padding:12px}.toolbar small{width:100%;margin:0}.stage{height:560px}.term{padding:8px 10px}footer{display:block}footer span{display:block;margin-bottom:5px}}
 
@@ -143,7 +143,7 @@ main{max-width:none;padding:5px 8px;gap:5px}header{justify-content:flex-start;ga
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b0deb9e26d5b4ab8afbd2ccc45627468"}'></script><!-- End Cloudflare Web Analytics -->
 </head>
 <body><main>
-<header><h1>Algebra Bubbles</h1><span class="release-version">v1.19</span><div class="header-actions"><button id="make-own" class="secondary">Make your own</button><button id="help" class="secondary">Help</button></div></header>
+<header><h1>Algebra Bubbles</h1><span class="release-version">v1.20</span><div class="header-actions"><button id="make-own" class="secondary">Make your own</button><button id="help" class="secondary">Help</button></div></header>
 <div class="work-layout" id="work-layout">
 <aside id="controls"></aside><div class="math-area">
 <section id="editor" hidden><form id="form"><input id="input" aria-label="Enter an expression" value="" placeholder="3x + 2y − x + 5" autocomplete="off" spellcheck="false"><button id="show" type="button">Show expression</button></form><div id="keypad" class="keypad" role="group" aria-label="Expression keypad"></div><div id="error" role="alert"></div></section>
@@ -297,8 +297,8 @@ function commitBubbleMerge(a,b){
  if(timed.active&&performance.now()-timed.started>=timedSpec().limit*1000){finishTimed(false);return;}
  recordCombination(a,b);if(zen)zenSound(clean(a.v+b.v)===0?'pop':'merge');
  const left=Math.min(terms.indexOf(a),terms.indexOf(b));const v=clean(a.v+b.v);
- const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:false,zenMass:(a.zenMass||a.origins?.length||1)+(b.zenMass||b.origins?.length||1)};
- a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=zen?Math.max(a.r,b.r):(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick+.7;t.mergeSizeDirection=zen?1:Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;t.sizeKick=t.mergeSizeDirection*.09;syncSelection();render();position(t);
+ const t={id:++uid,v,type:a.type,state:v===0?'cancel':'air',x:(a.x+b.x)/2,y:(a.y+b.y)/2,vx:(a.vx+b.vx)/2,vy:(a.vy+b.vy)/2,age:0,launch:0,origins:[...(a.origins||[a.id]),...(b.origins||[b.id])],chosen:v!==0&&a.chosen&&b.chosen,zenMass:(a.zenMass||a.origins?.length||1)+(b.zenMass||b.origins?.length||1)};
+ a.el.remove();b.el.remove();terms=terms.filter(n=>n!==a&&n!==b);terms.splice(left,0,t);bubble(t);t.el.classList.remove('pop');t.r=zen?Math.max(a.r,b.r):(a.r+b.r)/2;sizeBubble(t);t.settleUntil=tick;t.mergeSizeDirection=zen?1:Math.sign(Math.abs(v)-Math.max(Math.abs(a.v),Math.abs(b.v)));t.mergeSizeAt=tick;t.sizeKick=t.mergeSizeDirection*.09;syncSelection();render();position(t);
  const msg=label(a)+' and '+label(b)+' combine to '+label(t);$('live').textContent=msg;setStatus(v===0?'Opposite terms make zero and disappear.':'Like terms combined. Their coefficients add.');
  if(v===0){t.textEl.textContent='0';requestAnimationFrame(()=>t.el.classList.add('cancel'));}
  return t;
@@ -327,7 +327,7 @@ function physicsStep(dt){
    t.x+=t.vx*dt;t.y=Math.max(t.r,Math.min(h-t.r,t.y+t.vy*dt));position(t);
    if(e.side===1?t.x>=t.r+Math.min(w*.16,t.r*1.5):t.x<=w-t.r-Math.min(w*.16,t.r*1.5)){delete t.zenEntry;t.launch=.5;}continue;}
 
-  if(t.el&&t.targetR){t.r+=(t.targetR-t.r)*(1-Math.exp(-dt*4));sizeBubble(t);}
+  if(t.el&&t.targetR){t.r+=(t.targetR-t.r)*(1-Math.exp(-dt*9));sizeBubble(t);}
   if(t.dragging||dragSession?.t===t||(pending&&(t===pending.a||t===pending.b))){position(t);continue;}
   if(t.state==='inflating'){
    t.age+=dt;const source=t.inflateOrigin||destination(t);
@@ -635,7 +635,7 @@ function advanceMerges(dt){
  for(const j of [...mergeJobs]){
  if(!terms.includes(j.a)||!terms.includes(j.b)){j.bridge.remove();mergeJobs=mergeJobs.filter(n=>n!==j);continue;}
  const previousPhase=Math.max(0,j.age-.1)*11;
- j.age+=dt;const u=Math.min(1,j.age/2.1),opening=Math.min(1,j.age/.30),ease=opening*opening*(3-2*opening),r=j.r,sep=j.sep*(1-ease),age=Math.max(0,j.age-.1),pts=[];
+ j.age+=dt;const u=Math.min(1,j.age/(zen?.30:.55)),opening=Math.min(1,j.age/.30),ease=opening*opening*(3-2*opening),r=j.r,sep=j.sep*(1-ease),age=Math.max(0,j.age-.1),pts=[];
  for(let i=0;i<128;i++){const th=i/128*Math.PI*2,cs=Math.cos(th),sn=Math.sin(th);
  const outer=sep*Math.abs(cs)+Math.sqrt(Math.max(0,r*r-sep*sep*sn*sn));
  const wave=r*(1-Math.exp(-age*14))*Math.exp(-age*2.8)*(1-u**4)*(.15*Math.sin(age*11)*Math.cos(2*th)+.035*Math.sin(age*11)*Math.sin(3*th));
@@ -646,7 +646,7 @@ function advanceMerges(dt){
  // Both deformation modes pass through zero together every half cycle.
  const roundAgain=Math.floor(age*11/Math.PI)>Math.floor(previousPhase/Math.PI);
  let next;
- if((roundAgain||u===1)&&!unbubbleRequested&&!dragSession&&!pending&&j.a.chosen&&j.b.chosen&&clean(j.a.v+j.b.v)!==0){
+ if(u===1&&!unbubbleRequested&&!dragSession&&!pending&&j.a.chosen&&j.b.chosen&&clean(j.a.v+j.b.v)!==0){
   next=terms.find(t=>t.state==='air'&&t.chosen&&t.type===j.a.type&&!t.dragging&&!(t.hold>0)&&Math.hypot(t.x-j.cx,t.y-j.cy)<=t.r+r);
  }
  if(next||u===1){
